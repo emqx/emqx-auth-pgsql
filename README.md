@@ -6,7 +6,7 @@ emqttd Authentication/ACL with PostgreSQL Database.
 
 ## Build Plugin
 
-Build the plugin in emqttd project. Checkout this plugin to 'emqttd/plugins/' folder:
+Build the plugin in emqttd project. Checkout the plugin to 'emqttd/plugins/' folder:
 
 If the submodules exist:
 
