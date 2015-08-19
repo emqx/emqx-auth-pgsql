@@ -1,14 +1,20 @@
 
-# emqttd_plugin_pgsql
+## Overview 
 
-PostgreSQL Authentication Plugin.
-
-Notice: This plugin provide a simple username, password authentication with PostgreSQL. 
-
+emqttd Authentication/ACL with PostgreSQL Database.
 
 ## Build Plugin
 
 Build the plugin in emqttd project. Checkout this plugin to 'emqttd/plugins/' folder:
+
+If the submodules exist:
+
+```
+git submodule update --remote plugins/epgsql
+git submodule update --remote plugins/emqttd_plugin_pgsql
+```
+
+Orelse:
 
 ```
 git submodule add https://github.com/epgsql/epgsql.git plugins/epgsql
@@ -16,13 +22,6 @@ git submodule add https://github.com/epgsql/epgsql.git plugins/epgsql
 git submodule add https://github.com/emqtt/emqttd_plugin_pgsql.git plugins/emqttd_plugin_pgsql
 
 make && make dist
-```
-
-If the submodules exist:
-
-```
-git submodule update --remote plugins/epgsql
-git submodule update --remote plugins/emqttd_plugin_pgsql
 ```
 
 ## Configure Plugin
@@ -46,13 +45,28 @@ File: etc/plugin.config
   ]},
 
   {emqttd_plugin_pgsql, [
-      {user_table, mqtt_users},
-      %% plain, md5, sha
-      {password_hash, plain}, %% Only for test
-      {field_mapper, [
-          {username, username},
-          {password, password}
-      ]}
+
+    %% select password only
+    {authquery, "select password from mqtt_user where username = '%u' limit 1"},
+
+    %% hash algorithm: md5, sha, sha256, pbkdf2?
+    {password_hash, sha256},
+
+    %% select password with salt
+    %% {authquery, "select password, salt from mqtt_user where username = '%u'"},
+
+    %% sha256 with salt prefix
+    %% {password_hash, {salt, sha256}},
+
+    %% sha256 with salt suffix
+    %% {password_hash, {sha256, salt}},
+
+    %% Comment this query, the acl will be disabled. Notice: don't edit this query!
+    {aclquery, "select allow, ipaddr, username, clientid, access, topic from mqtt_acl
+                 where ipaddr = '%a' or username = '%u' or username = '$all' or clientid = '%c'"},
+
+    %% If no rules matched, return...
+    {acl_nomatch, allow}
   ]}
 ].
 ```
@@ -63,12 +77,18 @@ File: etc/plugin.config
 ./bin/emqttd_ctl plugins load emqttd_plugin_pgsql
 ```
 
-## Customize Plugin
+## Auth Table
+
+
+
+## ACL Table
+
+
+
+## Support
 
 Fork this project and implement your own authentication/ACL mechanism.
 
-## Author 
-
-Feng Lee <feng@emqtt.io>
+Contact feng@emqtt.io if any issues.
 
 
