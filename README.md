@@ -83,6 +83,8 @@ File: etc/plugin.config
 
 ## Auth Table
 
+Notice: This is a demo table. You could authenticate with any user table.
+
 ```sql
 CREATE TABLE mqtt_user (
   id SERIAL primary key,
