@@ -20,31 +20,33 @@
 %%% SOFTWARE.
 %%%-----------------------------------------------------------------------------
 %%% @doc
-%%% emqttd pgsql plugin application.
+%%% emqttd pgsql plugin.
 %%%
 %%% @end
 %%%-----------------------------------------------------------------------------
 
--module(emqttd_plugin_pgsql_app).
+-module(emqttd_plugin_pgsql).
 
--behaviour(application).
+-export([load/0, unload/0]).
 
-%% Application callbacks
--export([start/2, prep_stop/1, stop/1]).
+load() ->
+    {ok, AuthSql}  = application:get_env(?MODULE, authquery),
+    {ok, HashType} = application:get_env(?MODULE, password_hash),
+    ok = emqttd_access_control:register_mod(auth, emqttd_auth_pgsql, {AuthSql, HashType}),
+    with_acl_enabled(fun(AclSql) ->
+        {ok, AclNomatch} = application:get_env(?MODULE, acl_nomatch),
+        ok = emqttd_access_control:register_mod(acl, emqttd_acl_pgsql, {AclSql, AclNomatch})
+    end).
 
-%% ===================================================================
-%% Application callbacks
-%% ===================================================================
-
-start(_StartType, _StartArgs) ->
-    {ok, Sup} = emqttd_plugin_pgsql_sup:start_link(),
-    emqttd_plugin_pgsql:load(),
-    {ok, Sup}.
-
-prep_stop(State) ->
-    emqttd_plugin_pgsql:unload(),
-    State.
-
-stop(_State) ->
-    ok.
+unload() ->
+    emqttd_access_control:unregister_mod(auth, emqttd_auth_pgsql),
+    with_acl_enabled(fun(_AclSql) ->
+        emqttd_access_control:unregister_mod(acl, emqttd_acl_pgsql)
+    end).
+    
+with_acl_enabled(Fun) ->
+    case application:get_env(?MODULE, aclquery) of
+        {ok, AclSql} -> Fun(AclSql);
+        undefined    -> ok
+    end.
 

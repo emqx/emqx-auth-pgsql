@@ -37,49 +37,65 @@
 
 -export([init/1, check/3, description/0]).
 
--record(state, {user_table, name_field, pass_field, pass_hash}).
+-record(state, {auth_sql, hash_type}).
 
--define(Undefined(S), (S =:= undefined orelse S =:= <<>>)).
+-define(UNDEFINED(S), (S =:= undefined orelse S =:= <<>>)).
 
-load(Env) ->
-    ok = emqttd_access_control:register_mod(auth, ?MODULE, Env).
-
-init(Opts) ->
-    Mapper = proplists:get_value(field_mapper, Opts),
-    {ok, #state{user_table = proplists:get_value(user_table, Opts),
-                name_field = proplists:get_value(username, Mapper),
-                pass_field = proplists:get_value(password, Mapper),
-                pass_hash  = proplists:get_value(password_hash, Opts)}}.
+init({AuthSql, HashType}) -> 
+    {ok, #state{auth_sql = AuthSql, hash_type = HashType}}.
 
 check(#mqtt_client{username = Username}, Password, _State)
-    when ?Undefined(Username) orelse ?Undefined(Password) ->
-    {error, "Username or Password is undefined!"};
+    when ?UNDEFINED(Username) orelse ?UNDEFINED(Password) ->
+    {error, undefined};
 
 check(#mqtt_client{username = Username}, Password,
-      #state{user_table = UserTab, pass_hash = Type,
-             name_field = NameField, pass_field = PassField}) ->
-    Sql = io_lib:format("select ~s from ~s where ~s = $1 and ~s = $2",
-                            [NameField, UserTab, NameField, PassField]),
-    case emqttd_pgsql_pool:equeury(pgauth, Sql, [Username, hash(Type, Password)]) of
-        {ok, _, [{1}]} -> ok;
-        {ok, _, _} -> {error, "Not Found"};
-        {error, Error} -> {error, Error}
+        #state{auth_sql = AuthSql, hash_type = HashType}) ->
+    case emqttd_pgsql_pool:squeury(pgauth, replvar(AuthSql, Username)) of
+        {ok, Result, [{1}]} ->
+            io:format("~p~n", [Result]),
+            %%check_pass(lists:sort(Record), Password, HashType);
+            ok;
+        {ok, _, _} ->
+            {error, not_found};
+        {error, Error} ->
+            {error, Error}
     end.
 
 description() -> "Authentication by PostgreSQL".
 
-hash(plain, Password) ->
+replvar(AuthSql, Username) ->
+    re:replace(AuthSql, "%u", Username, [global, {return, list}]).
+
+check_pass([{password, PassHash}], Password, HashType) ->
+    case PassHash =:= hash(HashType, Password) of
+        true  -> ok;
+        false -> {error, password_error}
+    end;
+check_pass([{password, PassHash}, {salt, Salt}], Password, {salt, HashType}) ->
+    case PassHash =:= hash(HashType, <<Salt/binary, Password/binary>>) of
+        true  -> ok;
+        false -> {error, password_error}
+    end;
+check_pass([{password, PassHash}, {salt, Salt}], Password, {HashType, salt}) ->
+    case PassHash =:= hash(HashType, <<Password/binary, Salt/binary>>) of
+        true  -> ok;
+        false -> {error, password_error}
+    end.
+
+hash(plain,  Password)  ->
     Password;
-
-hash(md5, Password) ->
+hash(md5,    Password)  ->
     hexstring(crypto:hash(md5, Password));
-
-hash(sha, Password) ->
-    hexstring(crypto:hash(sha, Password)).
+hash(sha,    Password)  ->
+    hexstring(crypto:hash(sha, Password));
+hash(sha256, Password)  ->
+    hexstring(crypto:hash(sha256, Password)).
 
 hexstring(<<X:128/big-unsigned-integer>>) ->
-    lists:flatten(io_lib:format("~32.16.0b", [X]));
-
+    iolist_to_binary(io_lib:format("~32.16.0b", [X]));
 hexstring(<<X:160/big-unsigned-integer>>) ->
-    lists:flatten(io_lib:format("~40.16.0b", [X])).
- 
+    iolist_to_binary(io_lib:format("~40.16.0b", [X]));
+hexstring(<<X:256/big-unsigned-integer>>) ->
+    iolist_to_binary(io_lib:format("~64.16.0b", [X])).
+
+
