@@ -31,8 +31,6 @@
 
 -include_lib("emqttd/include/emqttd.hrl").
 
--export([load/1]).
-
 -behaviour(emqttd_auth_mod).
 
 -export([init/1, check/3, description/0]).
@@ -50,13 +48,11 @@ check(#mqtt_client{username = Username}, Password, _State)
 
 check(#mqtt_client{username = Username}, Password,
         #state{auth_sql = AuthSql, hash_type = HashType}) ->
-    case emqttd_pgsql_pool:squeury(pgauth, replvar(AuthSql, Username)) of
-        {ok, Result, [{1}]} ->
-            io:format("~p~n", [Result]),
-            %%check_pass(lists:sort(Record), Password, HashType);
-            ok;
-        {ok, _, _} ->
+    case emqttd_pgsql_pool:squery(pgauth, replvar(AuthSql, Username)) of
+        {ok, _, []} ->
             {error, not_found};
+        {ok, _, [Record]} ->
+            check_pass(Record, Password, HashType);
         {error, Error} ->
             {error, Error}
     end.
@@ -66,17 +62,17 @@ description() -> "Authentication by PostgreSQL".
 replvar(AuthSql, Username) ->
     re:replace(AuthSql, "%u", Username, [global, {return, list}]).
 
-check_pass([{password, PassHash}], Password, HashType) ->
+check_pass({PassHash}, Password, HashType) ->
     case PassHash =:= hash(HashType, Password) of
         true  -> ok;
         false -> {error, password_error}
     end;
-check_pass([{password, PassHash}, {salt, Salt}], Password, {salt, HashType}) ->
+check_pass({PassHash, Salt}, Password, {salt, HashType}) ->
     case PassHash =:= hash(HashType, <<Salt/binary, Password/binary>>) of
         true  -> ok;
         false -> {error, password_error}
     end;
-check_pass([{password, PassHash}, {salt, Salt}], Password, {HashType, salt}) ->
+check_pass({PassHash, Salt}, Password, {HashType, salt}) ->
     case PassHash =:= hash(HashType, <<Password/binary, Salt/binary>>) of
         true  -> ok;
         false -> {error, password_error}
@@ -97,5 +93,4 @@ hexstring(<<X:160/big-unsigned-integer>>) ->
     iolist_to_binary(io_lib:format("~40.16.0b", [X]));
 hexstring(<<X:256/big-unsigned-integer>>) ->
     iolist_to_binary(io_lib:format("~64.16.0b", [X])).
-
 

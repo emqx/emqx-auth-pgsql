@@ -46,10 +46,10 @@ check_acl({#mqtt_client{username = <<$$, _/binary>>}, _PubSub, _Topic}, _State) 
 check_acl({Client, PubSub, Topic}, #state{acl_sql = AclSql,
                                           acl_nomatch = Default}) ->
 
-    case emqttd_pgsql_pool:squeury(pgauth, feed_var(Client, AclSql)) of
-        {ok, _, [{0}]} ->
+    case emqttd_pgsql_pool:squery(pgauth, feed_var(Client, AclSql)) of
+        {ok, _, []} ->
             Default;
-        {ok, Rows, _} ->
+        {ok, _, [Rows]} ->
             Rules = filter(PubSub, compile(Rows)),
             case match(Client, Topic, Rules) of
                 {matched, allow} -> allow;
@@ -85,18 +85,18 @@ compile(Rows) ->
     compile(Rows, []).
 compile([], Acc) ->
     Acc;
-compile([Row|T], Acc) ->
-    Who  = who(g(ipaddr, Row), g(username, Row), g(clientid, Row)),
-    Term = {allow(g(allow, Row)), Who, access(g(access, Row)), [topic(g(topic, Row))]},
+compile([{Allow, IpAddr, Username, ClientId, Access, Topic}|T], Acc) ->
+    Who  = who(IpAddr, Username, ClientId),
+    Term = {allow(Allow), Who, access(Access), [topic(Topic)]},
     compile(T, [emqttd_access_rule:compile(Term) | Acc]).
 
 who(_, <<"$all">>, _) ->
     all;
-who(CIDR, undefined, undefined) ->
+who(CIDR, null, null) ->
     {ipaddr, binary_to_list(CIDR)};
-who(undefined, Username, undefined) ->
+who(null, Username, null) ->
     {user, Username};
-who(undefined, undefined, ClientId) ->
+who(null, null, ClientId) ->
     {client, ClientId}.
 
 allow(1)  -> allow;
@@ -116,7 +116,4 @@ reload_acl(_State) ->
 
 description() ->
     "ACL Module by Mysql".
-
-g(K, L) ->
-    proplists:get_value(K, L).
 

@@ -52,9 +52,9 @@ init([]) ->
 
     Children =
     lists:map(fun({Pool, Opts}) -> 
-        {{emqttd_pgsql_sup, Pool},
-            {emqttd_pgsql_sup, start_link, [Pool, Opts]},
-                permanent, infinity, supervisor, [emqttd_pgsql_sup]}
+        {{emqttd_pgsql_pool_sup, Pool},
+            {emqttd_pgsql_pool_sup, start_link, [Pool, Opts]},
+                permanent, infinity, supervisor, [emqttd_pgsql_pool_sup]}
     end, Pools),
 
     {ok, { {one_for_all, 5, 100}, Children} }.

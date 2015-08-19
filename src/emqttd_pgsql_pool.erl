@@ -55,7 +55,7 @@ init([Pool, I, Opts]) ->
     Host = proplists:get_value(host, Opts),
     Username = proplists:get_value(username, Opts),
     Password = proplists:get_value(password, Opts),
-    case eqgsql:connect(Host, Username, Password, conn_opts(Opts)) of
+    case epgsql:connect(Host, Username, Password, conn_opts(Opts)) of
         {ok, C} ->
             gproc_pool:connect_worker(Pool, {?MODULE, I}),
             {ok, #state{name = Pool, id = I, client = C}};

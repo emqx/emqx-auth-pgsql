@@ -37,12 +37,12 @@
 %% Supervisor callbacks
 -export([init/1]).
 
-start_link(Pool, Opts) ->
+start_link(Pool, Opts) when is_atom(Pool) ->
     supervisor:start_link(?MODULE, [Pool, Opts]).
 
 init([Pool, Opts]) ->  
     PoolSize = proplists:get_value(size, Opts, erlang:system_info(schedulers)),
-    gproc_pool:new(pooler, random, [{size, PoolSize}]),
+    gproc_pool:new(Pool, random, [{size, PoolSize}]),
     Children = lists:map(
                  fun(I) ->
                      gproc_pool:add_worker(Pool, {emqttd_pgsql_pool, I}, I),
