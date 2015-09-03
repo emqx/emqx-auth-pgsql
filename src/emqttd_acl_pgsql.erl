@@ -99,12 +99,17 @@ who(null, Username, null) ->
 who(null, null, ClientId) ->
     {client, ClientId}.
 
-allow(1)  -> allow;
-allow(0)  -> deny.
+allow(1)        -> allow;
+allow(0)        -> deny;
+allow(<<"1">>)  -> allow;
+allow(<<"0">>)  -> deny.
 
-access(1) -> subscribe;
-access(2) -> publish;
-access(3) -> pubsub.
+access(1)       -> subscribe;
+access(2)       -> publish;
+access(3)       -> pubsub;
+access(<<"1">>) -> subscribe;
+access(<<"2">>) -> publish;
+access(<<"3">>) -> pubsub.
 
 topic(<<"eq ", Topic/binary>>) ->
     {eq, Topic};
