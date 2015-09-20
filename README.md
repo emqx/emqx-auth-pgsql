@@ -11,15 +11,12 @@ Build the plugin in emqttd project. Checkout the plugin to 'emqttd/plugins/' fol
 If the submodules exist:
 
 ```
-git submodule update --remote plugins/epgsql
 git submodule update --remote plugins/emqttd_plugin_pgsql
 ```
 
 Orelse:
 
 ```
-git submodule add https://github.com/epgsql/epgsql.git plugins/epgsql
-
 git submodule add https://github.com/emqtt/emqttd_plugin_pgsql.git plugins/emqttd_plugin_pgsql
 
 make && make dist
