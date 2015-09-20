@@ -116,6 +116,8 @@ VALUES
 
 ```
 
+**Notice that only one value allowed for ipaddr, username and clientid fields.**
+
 
 ## Support
 

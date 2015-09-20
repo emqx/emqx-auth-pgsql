@@ -49,7 +49,7 @@ check_acl({Client, PubSub, Topic}, #state{acl_sql = AclSql,
     case emqttd_pgsql_pool:squery(pgauth, feed_var(Client, AclSql)) of
         {ok, _, []} ->
             Default;
-        {ok, _, [Rows]} ->
+        {ok, _, Rows} ->
             Rules = filter(PubSub, compile(Rows)),
             case match(Client, Topic, Rules) of
                 {matched, allow} -> allow;
@@ -99,12 +99,17 @@ who(null, Username, null) ->
 who(null, null, ClientId) ->
     {client, ClientId}.
 
-allow(1)  -> allow;
-allow(0)  -> deny.
+allow(1)        -> allow;
+allow(0)        -> deny;
+allow(<<"1">>)  -> allow;
+allow(<<"0">>)  -> deny.
 
-access(1) -> subscribe;
-access(2) -> publish;
-access(3) -> pubsub.
+access(1)       -> subscribe;
+access(2)       -> publish;
+access(3)       -> pubsub;
+access(<<"1">>) -> subscribe;
+access(<<"2">>) -> publish;
+access(<<"3">>) -> pubsub.
 
 topic(<<"eq ", Topic/binary>>) ->
     {eq, Topic};
