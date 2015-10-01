@@ -2,7 +2,7 @@
 {application, emqttd_plugin_pgsql,
  [
   {description, "emqttd PostgreSQL Plugin"},
-  {vsn, "0.1"},
+  {vsn, "0.11"},
   {registered, []},
   {applications, [
                   kernel,
