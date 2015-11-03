@@ -118,6 +118,9 @@ handle_info({'EXIT', Pid, Reason}, State = #state{client = Pid, reconnect = Secs
             reconnect(State#state{client = undefined})
     end;
 
+handle_info({'EXIT', _Pid, _Reason}, State = #state{client = undefined}) ->
+    {noreply, State};
+
 handle_info(Info, State) ->
     ?LOG(error, "Unexpected Info: ~p", [Info]),
     {noreply, State}.
