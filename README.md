@@ -38,7 +38,8 @@ File: etc/plugin.config
               {username,  ""},
               {password,  ""},
               {database,  "mqtt"},
-              {encoding,  utf8}
+              {encoding,  utf8},
+              {reconnect, 5}
           ]}
       ]}
   ]},
