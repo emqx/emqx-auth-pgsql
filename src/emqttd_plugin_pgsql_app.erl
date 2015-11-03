@@ -24,7 +24,6 @@
 %%%
 %%% @end
 %%%-----------------------------------------------------------------------------
-
 -module(emqttd_plugin_pgsql_app).
 
 -behaviour(application).
