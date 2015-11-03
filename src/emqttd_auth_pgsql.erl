@@ -43,7 +43,7 @@ init({AuthSql, HashType}) ->
 
 check(#mqtt_client{username = Username}, Password, _State)
     when ?UNDEFINED(Username) orelse ?UNDEFINED(Password) ->
-    {error, undefined};
+    {error, username_or_passwd_undefined};
 
 check(#mqtt_client{username = Username}, Password,
         #state{auth_sql = AuthSql, hash_type = HashType}) ->

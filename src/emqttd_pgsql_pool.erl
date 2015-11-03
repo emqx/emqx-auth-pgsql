@@ -85,7 +85,7 @@ conn_opts([_Opt|Opts], Acc) ->
     conn_opts(Opts, Acc).
 
 handle_call({squery, _Sql}, _From, State = #state{client = undefined}) ->
-    {reply, {error, disconnected}, State};
+    {reply, {error, database_disconnected}, State};
 
 handle_call({squery, Sql}, _From, State = #state{client = C}) ->
     {reply, epgsql:squery(C, Sql), State};
