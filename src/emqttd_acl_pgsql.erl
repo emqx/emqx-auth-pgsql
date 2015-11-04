@@ -92,12 +92,14 @@ compile([{Allow, IpAddr, Username, ClientId, Access, Topic}|T], Acc) ->
 
 who(_, <<"$all">>, _) ->
     all;
-who(CIDR, null, null) ->
-    {ipaddr, binary_to_list(CIDR)};
-who(null, Username, null) ->
-    {user, Username};
-who(null, null, ClientId) ->
-    {client, ClientId}.
+who(null, null, null) ->
+    throw(undefined_who);
+who(CIDR, Username, ClientId) ->
+    Cols = [{ipaddr, b2l(CIDR)}, {user, Username}, {client, ClientId}],
+    case [{C, V} || {C, V} <- Cols, V =/= null] of
+        [Who] -> Who;
+        Conds -> {'and', Conds}
+    end.
 
 allow(1)        -> allow;
 allow(0)        -> deny;
@@ -122,3 +124,5 @@ reload_acl(_State) ->
 description() ->
     "ACL Module by Mysql".
 
+b2l(undefined) -> undefined;
+b2l(B)         -> binary_to_list(B).

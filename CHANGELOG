@@ -4,6 +4,8 @@
 
 Auto reconnect to pgsql(#4)
 
+Support 'and', 'or' ACL Rule
+
 
 0.10.0-beta (2015-08-20)
 -------------------------
