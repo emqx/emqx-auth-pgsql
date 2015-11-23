@@ -124,5 +124,5 @@ reload_acl(_State) ->
 description() ->
     "ACL Module by Mysql".
 
-b2l(undefined) -> undefined;
-b2l(B)         -> binary_to_list(B).
+b2l(null) -> null;
+b2l(B)    -> binary_to_list(B).
