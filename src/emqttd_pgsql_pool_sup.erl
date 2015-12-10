@@ -19,14 +19,11 @@
 %%% OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 %%% SOFTWARE.
 %%%-----------------------------------------------------------------------------
-%%% @doc
-%%% emqttd pgsql pool supervisor.
+%%% @doc emqttd pgsql pool supervisor.
 %%%
-%%% @end
+%%% @author Feng Lee <feng@emqtt.io>
 %%%-----------------------------------------------------------------------------
 -module(emqttd_pgsql_pool_sup).
-
--author("Feng Lee <feng@emqtt.io>").
 
 -behaviour(supervisor).
 
