@@ -35,7 +35,7 @@
 -define(POOL, pgsql_pool).
 
 connect(Opts) ->
-    Host = get_value(host, Opts),
+    Host     = get_value(host, Opts),
     Username = get_value(username, Opts),
     Password = get_value(password, Opts),
     epgsql:connect(Host, Username, Password, conn_opts(Opts)).

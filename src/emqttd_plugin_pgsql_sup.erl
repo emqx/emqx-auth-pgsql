@@ -23,7 +23,6 @@
 %%%
 %%% @author Feng Lee <feng@emqtt.io>
 %%%-----------------------------------------------------------------------------
-
 -module(emqttd_plugin_pgsql_sup).
 
 -behaviour(supervisor).
@@ -52,5 +51,4 @@ init([]) ->
     Pool = ecpool:pool_spec(pgsql_pool, pgsql_pool, emqttd_pgsql_client, Env),
 
     {ok, { {one_for_all, 5, 100}, [Pool]} }.
-
 

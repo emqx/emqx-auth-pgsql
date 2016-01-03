@@ -53,7 +53,7 @@ check(#mqtt_client{username = Username}, Password,
             {error, Error}
     end.
 
-description() -> "Authentication by PostgreSQL".
+description() -> "Authentication with PostgreSQL".
 
 replvar(AuthSql, Username) ->
     re:replace(AuthSql, "%u", Username, [global, {return, list}]).
