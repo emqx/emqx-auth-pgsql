@@ -45,7 +45,6 @@ File: etc/plugin.config
       {encoding,  utf8}
     ]},
 
-
     %% select password only
     {authquery, "select password from mqtt_user where username = '%u' limit 1"},
 
