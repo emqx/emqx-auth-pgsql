@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% Copyright (c) 2015 eMQTT.IO, All Rights Reserved.
+%%% Copyright (c) 2015-2016 eMQTT.IO, All Rights Reserved.
 %%%
 %%% Permission is hereby granted, free of charge, to any person obtaining a copy
 %%% of this software and associated documentation files (the "Software"), to deal
@@ -19,32 +19,43 @@
 %%% OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 %%% SOFTWARE.
 %%%-----------------------------------------------------------------------------
-%%% @doc emqttd pgsql pool supervisor.
+%%% @doc emqttd pgsql connection pool client
 %%%
 %%% @author Feng Lee <feng@emqtt.io>
 %%%-----------------------------------------------------------------------------
--module(emqttd_pgsql_pool_sup).
 
--behaviour(supervisor).
+-module(emqttd_pgsql_client).
 
-%% API
--export([start_link/2]).
+-behaviour(ecpool_worker).
 
-%% Supervisor callbacks
--export([init/1]).
+-import(proplists, [get_value/2]).
 
-start_link(Pool, Opts) when is_atom(Pool) ->
-    supervisor:start_link(?MODULE, [Pool, Opts]).
+-export([connect/1, squery/1, equery/2]).
 
-init([Pool, Opts]) ->  
-    PoolSize = proplists:get_value(size, Opts, erlang:system_info(schedulers)),
-    gproc_pool:new(Pool, random, [{size, PoolSize}]),
-    Children = lists:map(
-                 fun(I) ->
-                     gproc_pool:add_worker(Pool, {emqttd_pgsql_pool, I}, I),
-                     {{emqttd_pgsql_pool, I},
-                        {emqttd_pgsql_pool, start_link, [Pool, I, Opts]},
-                            permanent, 5000, worker, [emqttd_pgsql_pool]}
-                 end, lists:seq(1, PoolSize)),
-    {ok, {{one_for_one, 10, 3600}, Children}}.
+-define(POOL, pgsql_pool).
+
+connect(Opts) ->
+    Host = get_value(host, Opts),
+    Username = get_value(username, Opts),
+    Password = get_value(password, Opts),
+    epgsql:connect(Host, Username, Password, conn_opts(Opts)).
+
+conn_opts(Opts) ->
+    conn_opts(Opts, []).
+conn_opts([], Acc) ->
+    Acc;
+conn_opts([Opt = {database, _}|Opts], Acc) ->
+    conn_opts(Opts, [Opt|Acc]);
+conn_opts([Opt = {port, _}|Opts], Acc) ->
+    conn_opts(Opts, [Opt|Acc]);
+conn_opts([Opt = {timeout, _}|Opts], Acc) ->
+    conn_opts(Opts, [Opt|Acc]);
+conn_opts([_Opt|Opts], Acc) ->
+    conn_opts(Opts, Acc).
+
+squery(Sql) ->
+    ecpool:with_client(?POOL, fun(C) -> epgsql:squery(C, Sql) end).
+
+equery(Sql, Params) ->
+    ecpool:with_client(?POOL, fun(C) -> epgsql:equery(C, Sql, Params) end).
 

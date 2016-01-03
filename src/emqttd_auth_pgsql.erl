@@ -44,7 +44,7 @@ check(#mqtt_client{username = Username}, Password, _State)
 
 check(#mqtt_client{username = Username}, Password,
         #state{auth_sql = AuthSql, hash_type = HashType}) ->
-    case emqttd_pgsql_pool:squery(pgauth, replvar(AuthSql, Username)) of
+    case emqttd_pgsql_client:squery(replvar(AuthSql, Username)) of
         {ok, _, []} ->
             {error, not_found};
         {ok, _, [Record]} ->

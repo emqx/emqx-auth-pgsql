@@ -23,6 +23,7 @@
 %%%
 %%% @author Feng Lee <feng@emqtt.io>
 %%%-----------------------------------------------------------------------------
+
 -module(emqttd_plugin_pgsql_sup).
 
 -behaviour(supervisor).
@@ -46,15 +47,10 @@ start_link() ->
 
 init([]) ->
 
-    {ok, Pools} = application:get_env(epgsql, pools),
+    {ok, Env} = application:get_env(emqttd_plugin_pgsql, pgsql_pool),
 
-    Children =
-    lists:map(fun({Pool, Opts}) -> 
-        {{emqttd_pgsql_pool_sup, Pool},
-            {emqttd_pgsql_pool_sup, start_link, [Pool, Opts]},
-                permanent, infinity, supervisor, [emqttd_pgsql_pool_sup]}
-    end, Pools),
+    Pool = ecpool:pool_spec(pgsql_pool, pgsql_pool, emqttd_pgsql_client, Env),
 
-    {ok, { {one_for_all, 5, 100}, Children} }.
+    {ok, { {one_for_all, 5, 100}, [Pool]} }.
 
 
