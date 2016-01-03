@@ -1,4 +1,3 @@
-
 ## Overview 
 
 emqttd Authentication/ACL with PostgreSQL Database.
@@ -29,22 +28,23 @@ File: etc/plugin.config
 
 ```erlang
 [
-  {epgsql, [
-      {pools, [
-          {pgauth, [
-              {size, 2},
-              {host, "localhost"},
-              {port, 5432},
-              {username,  ""},
-              {password,  ""},
-              {database,  "mqtt"},
-              {encoding,  utf8},
-              {reconnect, 5}
-          ]}
-      ]}
-  ]},
 
   {emqttd_plugin_pgsql, [
+
+    {pgsql_pool, [
+      %% ecpool options
+      {pool_size, 4},
+      {auto_reconnect, 3},
+
+      %% pgsql options
+      {host, "localhost"},
+      {port, 5432},
+      {username, "feng"},
+      {password, ""},
+      {database, "mqtt"},
+      {encoding,  utf8}
+    ]},
+
 
     %% select password only
     {authquery, "select password from mqtt_user where username = '%u' limit 1"},

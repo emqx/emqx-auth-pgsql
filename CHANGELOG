@@ -1,4 +1,10 @@
 
+0.15.0-beta (2016-01-03)
+-------------------------
+
+Integrate with [ecpool library](https://github.com/emqtt/ecpool)
+
+
 0.13.1-beta (2015-11-26)
 -------------------------
 
