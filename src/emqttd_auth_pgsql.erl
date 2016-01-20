@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% Copyright (c) 2015 eMQTT.IO, All Rights Reserved.
+%%% Copyright (c) 2015-2016 eMQTT.IO, All Rights Reserved.
 %%%
 %%% Permission is hereby granted, free of charge, to any person obtaining a copy
 %%% of this software and associated documentation files (the "Software"), to deal
@@ -74,19 +74,6 @@ check_pass({PassHash, Salt}, Password, {HashType, salt}) ->
         false -> {error, password_error}
     end.
 
-hash(plain,  Password)  ->
-    Password;
-hash(md5,    Password)  ->
-    hexstring(crypto:hash(md5, Password));
-hash(sha,    Password)  ->
-    hexstring(crypto:hash(sha, Password));
-hash(sha256, Password)  ->
-    hexstring(crypto:hash(sha256, Password)).
-
-hexstring(<<X:128/big-unsigned-integer>>) ->
-    iolist_to_binary(io_lib:format("~32.16.0b", [X]));
-hexstring(<<X:160/big-unsigned-integer>>) ->
-    iolist_to_binary(io_lib:format("~40.16.0b", [X]));
-hexstring(<<X:256/big-unsigned-integer>>) ->
-    iolist_to_binary(io_lib:format("~64.16.0b", [X])).
+hash(Type, Password) ->
+    emqttd_mod_auth:passwd_hash(Type, Password).
 
