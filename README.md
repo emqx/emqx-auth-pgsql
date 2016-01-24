@@ -34,6 +34,7 @@ File: etc/plugin.config
     {pgsql_pool, [
       %% ecpool options
       {pool_size, 4},
+      {pool_type, round_robin},
       {auto_reconnect, 3},
 
       %% pgsql options
