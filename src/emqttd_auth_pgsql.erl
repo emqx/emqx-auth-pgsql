@@ -75,5 +75,5 @@ check_pass({PassHash, Salt}, Password, {HashType, salt}) ->
     end.
 
 hash(Type, Password) ->
-    emqttd_mod_auth:passwd_hash(Type, Password).
+    emqttd_auth_mod:passwd_hash(Type, Password).
 

@@ -4,7 +4,7 @@
 
 Integrate with [ecpool library](https://github.com/emqtt/ecpool)
 
-Use emqttd_mod_auth:passwd_hash/2 api
+Use emqttd_auth_mod:passwd_hash/2 api
 
 0.13.1-beta (2015-11-26)
 -------------------------
