@@ -15,7 +15,6 @@
 %%--------------------------------------------------------------------
 
 %% @doc Authentication with PostgreSQL 'mqtt_users' table
-%% @author Feng Lee <feng@emqtt.io>
 -module(emqttd_auth_pgsql).
 
 -behaviour(emqttd_auth_mod).

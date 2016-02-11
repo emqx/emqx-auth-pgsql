@@ -15,7 +15,6 @@
 %%--------------------------------------------------------------------
 
 %% @doc emqttd pgsql plugin.
-%% @author Feng Lee <feng@emqtt.io>
 -module(emqttd_plugin_pgsql).
 
 -export([load/0, unload/0]).

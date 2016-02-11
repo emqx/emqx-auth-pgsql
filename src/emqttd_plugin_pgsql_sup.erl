@@ -15,7 +15,6 @@
 %%--------------------------------------------------------------------
 
 %% @doc emqttd pgsql plugin supervisor
-%% @author Feng Lee <feng@emqtt.io>
 -module(emqttd_plugin_pgsql_sup).
 
 -behaviour(supervisor).

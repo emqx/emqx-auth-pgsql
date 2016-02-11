@@ -14,8 +14,7 @@
 %% limitations under the License.
 %%--------------------------------------------------------------------
 
-%% @doc emqttd pgsql connection pool client
-%% @author Feng Lee <feng@emqtt.io>
+%% @doc emqttd pgsql pool client
 -module(emqttd_pgsql_client).
 
 -behaviour(ecpool_worker).
