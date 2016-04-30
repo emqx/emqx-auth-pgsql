@@ -1,3 +1,6 @@
 ebin
 .rebar
 .eunit
+.erlang.mk/
+deps/
+emqttd_auth_pgsql.d

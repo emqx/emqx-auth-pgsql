@@ -15,7 +15,7 @@
 %%--------------------------------------------------------------------
 
 %% @doc emqttd pgsql plugin application
--module(emqttd_plugin_pgsql_app).
+-module(emqttd_auth_pgsql_app).
 
 -behaviour(application).
 
