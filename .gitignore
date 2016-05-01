@@ -4,3 +4,8 @@ ebin
 .erlang.mk/
 deps/
 emqttd_auth_pgsql.d
+ct.coverdata
+logs/
+test/ct.cover.spec
+test/*.beam
+

@@ -1,35 +1,23 @@
-## Overview 
 
-emqttd Authentication/ACL with PostgreSQL Database.
+emqttd_auth_pgsql
+-----------------
 
+emqttd Authentication/ACL against PostgreSQL Database.
 
-## Build Plugin
+Build
+-----
 
-Build the plugin in emqttd project. Checkout the plugin to 'emqttd/plugins/' folder:
+make && make ct
 
-If the submodules exist:
+Configuration
+-------------
 
-```
-git submodule update --remote plugins/emqttd_plugin_pgsql
-```
-
-Orelse:
-
-```
-git submodule add https://github.com/emqtt/emqttd_plugin_pgsql.git plugins/emqttd_plugin_pgsql
-
-make && make dist
-```
-
-
-## Configure Plugin
-
-File: etc/plugin.config
+File: etc/emqttd_auth_pgsql.config
 
 ```erlang
 [
 
-  {emqttd_plugin_pgsql, [
+  {emqttd_auth_pgsql, [
 
     {pgsql_pool, [
       %% ecpool options
@@ -71,15 +59,15 @@ File: etc/plugin.config
 ].
 ```
 
-
-## Load Plugin
+Load Plugin
+-----------
 
 ```
 ./bin/emqttd_ctl plugins load emqttd_plugin_pgsql
 ```
 
-
-## Auth Table
+Auth Table
+----------
 
 Notice: This is a demo table. You could authenticate with any user table.
 
@@ -93,7 +81,8 @@ CREATE TABLE mqtt_user (
 ```
 
 
-## ACL Table
+ACL Table
+---------
 
 ```sql
 CREATE TABLE mqtt_acl (
@@ -119,8 +108,8 @@ VALUES
 
 **Notice that only one value allowed for ipaddr, username and clientid fields.**
 
-
-## Support
+Support
+-------
 
 Fork this project and implement your own authentication/ACL mechanism.
 
