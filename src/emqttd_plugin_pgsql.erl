@@ -34,7 +34,7 @@ is_superuser(undefined, _Client) ->
     false;
 is_superuser({SuperSql, Params}, Client) ->
     case equery(SuperSql, Params, Client) of
-        {ok, [_Super], [[1]]} ->
+        {ok, [_Super], [[true]]} ->
             true;
         {ok, [_Super], [[_False]]} ->
             false;
