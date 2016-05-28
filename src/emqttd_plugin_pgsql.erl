@@ -54,12 +54,12 @@ parse_query(Sql) ->
     case re:run(Sql, "'%[uca]'", [global, {capture, all, list}]) of
         {match, Variables} ->
             Params = [Var || [Var] <- Variables],
-            {replvar(Sql, Params), Params};
+            {pgvar(Sql, Params), Params};
         nomatch ->
             {Sql, []}
     end.
 
-replvar(Sql, Params) ->
+pgvar(Sql, Params) ->
     Vars = ["$" ++ integer_to_list(I) || I <- lists:seq(1, length(Params))],
     lists:foldl(fun({Param, Var}, S) ->
             re:replace(S, Param, Var, [global, {return, list}])
