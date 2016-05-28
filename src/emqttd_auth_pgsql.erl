@@ -23,32 +23,36 @@
 
 -export([init/1, check/3, description/0]).
 
--record(state, {auth_sql, hash_type}).
+-record(state, {super_query, auth_query, hash_type}).
 
 -define(UNDEFINED(S), (S =:= undefined orelse S =:= <<>>)).
 
-init({AuthSql, HashType}) -> 
-    {ok, #state{auth_sql = AuthSql, hash_type = HashType}}.
+init({SuperQuery, AuthQuery, HashType}) ->
+    {ok, #state{super_query = SuperQuery, auth_query = AuthQuery, hash_type = HashType}}.
 
-check(#mqtt_client{username = Username}, Password, _State)
-    when ?UNDEFINED(Username) orelse ?UNDEFINED(Password) ->
-    {error, username_or_passwd_undefined};
+check(#mqtt_client{username = Username}, _Password, _State) when ?UNDEFINED(Username) ->
+    {error, username_undefined};
 
-check(#mqtt_client{username = Username}, Password,
-        #state{auth_sql = AuthSql, hash_type = HashType}) ->
-    case emqttd_pgsql_client:squery(replvar(AuthSql, Username)) of
-        {ok, _, []} ->
-            {error, not_found};
-        {ok, _, [Record]} ->
-            check_pass(Record, Password, HashType);
-        {error, Error} ->
-            {error, Error}
+check(Client, Password, #state{super_query = SuperQuery}) when ?UNDEFINED(Password) ->
+    case emqttd_plugin_pgsql:is_superuser(SuperQuery, Client) of
+        true  -> ok;
+        false -> {error, password_undefined}
+    end;
+
+check(Client, Password, #state{super_query = SuperQuery,
+                               auth_query  = {AuthSql, AuthParams},
+                               hash_type   = HashType}) ->
+    case emqttd_plugin_pgsql:is_superuser(SuperQuery, Client) of
+        false -> case emqttd_plugin_pgsql:equery(AuthSql, AuthParams, Client) of
+                    {ok, _, [Record]} ->
+                        check_pass(Record, Password, HashType);
+                    {ok, _, []} ->
+                        {error, not_found};
+                    {error, Error} ->
+                        {error, Error}
+                 end;
+        true  -> ok
     end.
-
-description() -> "Authentication with PostgreSQL".
-
-replvar(AuthSql, Username) ->
-    re:replace(AuthSql, "%u", Username, [global, {return, list}]).
 
 check_pass({PassHash}, Password, HashType) ->
     case PassHash =:= hash(HashType, Password) of
@@ -68,4 +72,6 @@ check_pass({PassHash, Salt}, Password, {HashType, salt}) ->
 
 hash(Type, Password) ->
     emqttd_auth_mod:passwd_hash(Type, Password).
+
+description() -> "Authentication with PostgreSQL".
 
