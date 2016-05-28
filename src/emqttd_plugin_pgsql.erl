@@ -19,6 +19,8 @@
 
 -behaviour(ecpool_worker).
 
+-include("../../../include/emqttd.hrl").
+
 -import(proplists, [get_value/2]).
 
 -export([is_superuser/2, parse_query/1, connect/1, squery/1, equery/2, equery/3]).
