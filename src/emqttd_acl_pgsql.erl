@@ -39,6 +39,8 @@ check_acl({Client, PubSub, Topic}, #state{super_query = SuperQuery,
 
     case emqttd_plugin_pgsql:is_superuser(SuperQuery, Client) of
         false -> case emqttd_plugin_pgsql:equery(AclSql, AclParams, Client) of
+                    {ok, _, []} ->
+                        Default;
                     {ok, _, Rows} ->
                         Rules = filter(PubSub, compile(Rows)),
                         case match(Client, Topic, Rules) of
@@ -46,8 +48,6 @@ check_acl({Client, PubSub, Topic}, #state{super_query = SuperQuery,
                             {matched, deny}  -> deny;
                             nomatch          -> Default
                         end;
-                    {ok, _, []} ->
-                        Default;
                     {error, Error} ->
                         {error, Error}
                  end;
