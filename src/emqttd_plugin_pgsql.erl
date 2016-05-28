@@ -54,10 +54,16 @@ parse_query(Sql) ->
     case re:run(Sql, "'%[uca]'", [global, {capture, all, list}]) of
         {match, Variables} ->
             Params = [Var || [Var] <- Variables],
-            {re:replace(Sql, "'%[uca]'", "?", [global, {return, list}]), Params};
+            {replvar(Sql, Params), Params};
         nomatch ->
             {Sql, []}
     end.
+
+replvar(Sql, Params) ->
+    Vars = ["$" ++ integer_to_list(I) || I <- lists:seq(1, length(Params))],
+    lists:foldl(fun({Param, Var}, S) ->
+            re:replace(S, Param, Var, [global, {return, list}])
+        end, Sql, lists:zip(Params, Vars)).
 
 %%--------------------------------------------------------------------
 %% PostgreSQL Connect/Query

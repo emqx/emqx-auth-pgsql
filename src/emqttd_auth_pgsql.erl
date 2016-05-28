@@ -28,6 +28,7 @@
 -define(UNDEFINED(S), (S =:= undefined orelse S =:= <<>>)).
 
 init({SuperQuery, AuthQuery, HashType}) ->
+    io:format("~p~n", [SuperQuery]),
     {ok, #state{super_query = SuperQuery, auth_query = AuthQuery, hash_type = HashType}}.
 
 check(#mqtt_client{username = Username}, _Password, _State) when ?UNDEFINED(Username) ->

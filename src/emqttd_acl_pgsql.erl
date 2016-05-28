@@ -27,6 +27,7 @@
 -record(state, {super_query, acl_query, acl_nomatch}).
 
 init({SuperQuery, AclQuery, AclNomatch}) ->
+    io:format("AclQuery: ~p~n", [AclQuery]),
     {ok, #state{super_query = SuperQuery, acl_query = AclQuery, acl_nomatch = AclNomatch}}.
 
 check_acl({#mqtt_client{username = <<$$, _/binary>>}, _PubSub, _Topic}, _State) ->
