@@ -1,9 +1,11 @@
-## Overview 
 
-emqttd Authentication/ACL with PostgreSQL Database.
+emqttd_plugin_pgsql
+===================
 
+Authentication/ACL with PostgreSQL Database.
 
-## Build Plugin
+Build Plugin
+------------
 
 Build the plugin in emqttd project. Checkout the plugin to 'emqttd/plugins/' folder:
 
@@ -21,8 +23,8 @@ git submodule add https://github.com/emqtt/emqttd_plugin_pgsql.git plugins/emqtt
 make && make dist
 ```
 
-
-## Configure Plugin
+Configure Plugin
+----------------
 
 File: etc/plugin.config
 
@@ -33,8 +35,7 @@ File: etc/plugin.config
 
     {pgsql_pool, [
       %% ecpool options
-      {pool_size, 4},
-      {pool_type, round_robin},
+      {pool_size, 8},
       {auto_reconnect, 3},
 
       %% pgsql options
@@ -46,7 +47,12 @@ File: etc/plugin.config
       {encoding,  utf8}
     ]},
 
-    %% select password only
+    %% Variables: %u = username, %c = clientid, %a = ipaddress
+
+    %% Superuser Query
+    {superquery, "select is_superuser from mqtt_user where username = '%u' limit 1"},
+
+    %% Authentication Query: select password only
     {authquery, "select password from mqtt_user where username = '%u' limit 1"},
 
     %% hash algorithm: md5, sha, sha256, pbkdf2?
@@ -71,29 +77,30 @@ File: etc/plugin.config
 ].
 ```
 
-
-## Load Plugin
+Load Plugin
+-----------
 
 ```
 ./bin/emqttd_ctl plugins load emqttd_plugin_pgsql
 ```
 
-
-## Auth Table
+Auth Table
+----------
 
 Notice: This is a demo table. You could authenticate with any user table.
 
 ```sql
 CREATE TABLE mqtt_user (
   id SERIAL primary key,
+  is_superuser boolean,
   username character varying(100),
   password character varying(100),
   salt character varying(40)
 ) 
 ```
 
-
-## ACL Table
+ACL Table
+---------
 
 ```sql
 CREATE TABLE mqtt_acl (
@@ -114,15 +121,19 @@ VALUES
 	(5,1,'127.0.0.1',NULL,NULL,2,'$SYS/#'),
 	(6,1,'127.0.0.1',NULL,NULL,2,'#'),
 	(7,1,NULL,'dashboard',NULL,1,'$SYS/#');
-
 ```
 
 **Notice that only one value allowed for ipaddr, username and clientid fields.**
 
-
-## Support
+Support
+-------
 
 Fork this project and implement your own authentication/ACL mechanism.
 
 Contact feng at emqtt.io if any issues.
+
+License
+-------
+
+Apache License Version 2.0
 
