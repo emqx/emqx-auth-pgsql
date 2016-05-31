@@ -3,6 +3,7 @@
   {description, "emqttd PostgreSQL Plugin"},
   {vsn, "1.1"},
   {registered, []},
+  {modules, []},
   {applications, [
                   kernel,
                   stdlib,

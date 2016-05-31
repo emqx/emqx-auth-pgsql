@@ -17,26 +17,99 @@
 %% @doc emqttd pgsql plugin.
 -module(emqttd_plugin_pgsql).
 
--export([load/0, unload/0]).
+-behaviour(ecpool_worker).
 
-load() ->
-    {ok, AuthSql}  = application:get_env(?MODULE, authquery),
-    {ok, HashType} = application:get_env(?MODULE, password_hash),
-    ok = emqttd_access_control:register_mod(auth, emqttd_auth_pgsql, {AuthSql, HashType}),
-    with_acl_enabled(fun(AclSql) ->
-        {ok, AclNomatch} = application:get_env(?MODULE, acl_nomatch),
-        ok = emqttd_access_control:register_mod(acl, emqttd_acl_pgsql, {AclSql, AclNomatch})
-    end).
+-include("../../../include/emqttd.hrl").
 
-unload() ->
-    emqttd_access_control:unregister_mod(auth, emqttd_auth_pgsql),
-    with_acl_enabled(fun(_AclSql) ->
-        emqttd_access_control:unregister_mod(acl, emqttd_acl_pgsql)
-    end).
-    
-with_acl_enabled(Fun) ->
-    case application:get_env(?MODULE, aclquery) of
-        {ok, AclSql} -> Fun(AclSql);
-        undefined    -> ok
+-import(proplists, [get_value/2]).
+
+-export([is_superuser/2, parse_query/1, connect/1, squery/1, equery/2, equery/3]).
+
+%%--------------------------------------------------------------------
+%% Is Superuser?
+%%--------------------------------------------------------------------
+
+-spec(is_superuser(undefined | {string(), list()}, mqtt_client()) -> boolean()).
+is_superuser(undefined, _Client) ->
+    false;
+is_superuser({SuperSql, Params}, Client) ->
+    case equery(SuperSql, Params, Client) of
+        {ok, [_Super], [{true}]} ->
+            true;
+        {ok, [_Super], [_False]} ->
+            false;
+        {ok, [_Super], []} ->
+            false;
+        {error, _Error} ->
+            false
     end.
+
+%%--------------------------------------------------------------------
+%% Avoid SQL Injection: Parse SQL to Parameter Query.
+%%--------------------------------------------------------------------
+
+parse_query(undefined) ->
+    undefined;
+parse_query(Sql) ->
+    case re:run(Sql, "'%[uca]'", [global, {capture, all, list}]) of
+        {match, Variables} ->
+            Params = [Var || [Var] <- Variables],
+            {pgvar(Sql, Params), Params};
+        nomatch ->
+            {Sql, []}
+    end.
+
+pgvar(Sql, Params) ->
+    Vars = ["$" ++ integer_to_list(I) || I <- lists:seq(1, length(Params))],
+    lists:foldl(fun({Param, Var}, S) ->
+            re:replace(S, Param, Var, [global, {return, list}])
+        end, Sql, lists:zip(Params, Vars)).
+
+%%--------------------------------------------------------------------
+%% PostgreSQL Connect/Query
+%%--------------------------------------------------------------------
+
+connect(Opts) ->
+    Host     = get_value(host, Opts),
+    Username = get_value(username, Opts),
+    Password = get_value(password, Opts),
+    epgsql:connect(Host, Username, Password, conn_opts(Opts)).
+
+conn_opts(Opts) ->
+    conn_opts(Opts, []).
+conn_opts([], Acc) ->
+    Acc;
+conn_opts([Opt = {database, _}|Opts], Acc) ->
+    conn_opts(Opts, [Opt|Acc]);
+conn_opts([Opt = {ssl, _}|Opts], Acc) ->
+    conn_opts(Opts, [Opt|Acc]);
+conn_opts([Opt = {port, _}|Opts], Acc) ->
+    conn_opts(Opts, [Opt|Acc]);
+conn_opts([Opt = {timeout, _}|Opts], Acc) ->
+    conn_opts(Opts, [Opt|Acc]);
+conn_opts([_Opt|Opts], Acc) ->
+    conn_opts(Opts, Acc).
+
+squery(Sql) ->
+    ecpool:with_client(?MODULE, fun(C) -> epgsql:squery(C, Sql) end).
+
+equery(Sql, Params) ->
+    ecpool:with_client(?MODULE, fun(C) -> epgsql:equery(C, Sql, Params) end).
+
+equery(Sql, Params, Client) ->
+    ecpool:with_client(?MODULE, fun(C) -> epgsql:equery(C, Sql, replvar(Params, Client)) end).
+
+replvar(Params, Client) ->
+    replvar(Params, Client, []).
+
+replvar([], _Client, Acc) ->
+    lists:reverse(Acc);
+replvar(["'%u'" | Params], Client = #mqtt_client{username = Username}, Acc) ->
+    replvar(Params, Client, [Username | Acc]);
+replvar(["'%c'" | Params], Client = #mqtt_client{client_id = ClientId}, Acc) ->
+    replvar(Params, Client, [ClientId | Acc]);
+replvar(["'%a'" | Params], Client = #mqtt_client{peername = {IpAddr, _}}, Acc) ->
+    replvar(Params, Client, [inet_parse:ntoa(IpAddr) | Acc]);
+replvar([Param | Params], Client, Acc) ->
+    replvar(Params, Client, [Param | Acc]).
 
