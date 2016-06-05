@@ -4,6 +4,7 @@
   {vsn, "1.1"},
   {modules, []},
   {registered, []},
+  {modules, []},
   {applications, [
                   kernel,
                   stdlib,

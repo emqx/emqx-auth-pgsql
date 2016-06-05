@@ -24,39 +24,35 @@
 %% ACL callbacks
 -export([init/1, check_acl/2, reload_acl/1, description/0]).
 
--record(state, {acl_sql, acl_nomatch}).
+-record(state, {super_query, acl_query, acl_nomatch}).
 
-init({AclSql, AclNomatch}) ->
-    {ok, #state{acl_sql = AclSql, acl_nomatch = AclNomatch}}.
+init({SuperQuery, AclQuery, AclNomatch}) ->
+    io:format("AclQuery: ~p~n", [AclQuery]),
+    {ok, #state{super_query = SuperQuery, acl_query = AclQuery, acl_nomatch = AclNomatch}}.
 
 check_acl({#mqtt_client{username = <<$$, _/binary>>}, _PubSub, _Topic}, _State) ->
     {error, bad_username};
 
-check_acl({Client, PubSub, Topic}, #state{acl_sql = AclSql,
+check_acl({Client, PubSub, Topic}, #state{super_query = SuperQuery,
+                                          acl_query   = {AclSql, AclParams},
                                           acl_nomatch = Default}) ->
 
-    case emqttd_pgsql_client:squery(feed_var(Client, AclSql)) of
-        {ok, _, []} ->
-            Default;
-        {ok, _, Rows} ->
-            Rules = filter(PubSub, compile(Rows)),
-            case match(Client, Topic, Rules) of
-                {matched, allow} -> allow;
-                {matched, deny}  -> deny;
-                nomatch          -> Default
-            end;
-        {error, Error} ->
-            {error, Error}
+    case emqttd_auth_pgsql:is_superuser(SuperQuery, Client) of
+        false -> case emqttd_auth_pgsql:equery(AclSql, AclParams, Client) of
+                    {ok, _, []} ->
+                        Default;
+                    {ok, _, Rows} ->
+                        Rules = filter(PubSub, compile(Rows)),
+                        case match(Client, Topic, Rules) of
+                            {matched, allow} -> allow;
+                            {matched, deny}  -> deny;
+                            nomatch          -> Default
+                        end;
+                    {error, Error} ->
+                        {error, Error}
+                 end;
+        true  -> allow
     end.
-
-feed_var(#mqtt_client{client_id = ClientId,
-                      username  = Username,
-                      peername  = {IpAddr, _}}, AclSql) ->
-    Vars = [{"%u", Username}, {"%c", ClientId}, {"%a", inet_parse:ntoa(IpAddr)}],
-    lists:foldl(fun({Var, Val}, Sql) -> feed_var(Sql, Var, Val) end, AclSql, Vars).
-
-feed_var(Sql, Var, Val) ->
-    re:replace(Sql, Var, Val, [global, {return, list}]).
 
 match(_Client, _Topic, []) ->
     nomatch;
@@ -111,7 +107,8 @@ reload_acl(_State) ->
     ok.
 
 description() ->
-    "ACL Module by Mysql".
+    "ACL with PgSql".
 
 b2l(null) -> null;
 b2l(B)    -> binary_to_list(B).
+

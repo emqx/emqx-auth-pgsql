@@ -14,27 +14,53 @@
 %% limitations under the License.
 %%--------------------------------------------------------------------
 
-%% @doc emqttd pgsql plugin application
 -module(emqttd_auth_pgsql_app).
 
 -behaviour(application).
 
+-import(emqttd_auth_pgsql, [parse_query/1]).
+
 %% Application callbacks
 -export([start/2, prep_stop/1, stop/1]).
+
+-define(APP, emqttd_auth_pgsql).
 
 %%--------------------------------------------------------------------
 %% Application callbacks
 %%--------------------------------------------------------------------
 
 start(_StartType, _StartArgs) ->
-    {ok, Sup} = emqttd_plugin_pgsql_sup:start_link(),
-    emqttd_plugin_pgsql:load(),
+    {ok, Sup} = emqttd_auth_pgsql_sup:start_link(),
+    SuperQuery = parse_query(application:get_env(?APP, superquery, undefined)),
+    ok = register_auth_mod(SuperQuery), ok = register_acl_mod(SuperQuery),
     {ok, Sup}.
 
+register_auth_mod(SuperQuery) ->
+    {ok, AuthQuery} = application:get_env(?APP, authquery),
+    {ok, HashType}  = application:get_env(?APP, password_hash),
+    AuthEnv = {SuperQuery, parse_query(AuthQuery), HashType},
+    emqttd_access_control:register_mod(auth, emqttd_auth_pgsql, AuthEnv).
+
+register_acl_mod(SuperQuery) ->
+    with_acl_enabled(fun(AclQuery) ->
+        {ok, AclNomatch} = application:get_env(?APP, acl_nomatch),
+        AclEnv = {SuperQuery, parse_query(AclQuery), AclNomatch},
+        emqttd_access_control:register_mod(acl, emqttd_acl_pgsql, AclEnv)
+    end).
+
 prep_stop(State) ->
-    emqttd_plugin_pgsql:unload(),
+    emqttd_access_control:unregister_mod(auth, emqttd_auth_pgsql),
+    with_acl_enabled(fun(_AclQuery) ->
+        emqttd_access_control:unregister_mod(acl, emqttd_acl_pgsql)
+    end),
     State.
 
 stop(_State) ->
     ok.
+
+with_acl_enabled(Fun) ->
+    case application:get_env(?APP, aclquery) of
+        {ok, AclQuery} -> Fun(AclQuery);
+        undefined      -> ok
+    end.
 

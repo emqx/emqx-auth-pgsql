@@ -14,8 +14,9 @@
 %% limitations under the License.
 %%--------------------------------------------------------------------
 
-%% @doc Authentication with PostgreSQL 'mqtt_users' table
 -module(emqttd_auth_pgsql).
+
+-import(proplists, [get_value/2]).
 
 -behaviour(emqttd_auth_mod).
 
@@ -23,32 +24,44 @@
 
 -export([init/1, check/3, description/0]).
 
--record(state, {auth_sql, hash_type}).
+-behaviour(ecpool_worker).
+
+-export([is_superuser/2, parse_query/1, connect/1, squery/1, equery/2, equery/3]).
+
+-record(state, {super_query, auth_query, hash_type}).
 
 -define(UNDEFINED(S), (S =:= undefined orelse S =:= <<>>)).
 
-init({AuthSql, HashType}) -> 
-    {ok, #state{auth_sql = AuthSql, hash_type = HashType}}.
+%%--------------------------------------------------------------------
+%% Auth Module Callbacks
+%%--------------------------------------------------------------------
 
-check(#mqtt_client{username = Username}, Password, _State)
-    when ?UNDEFINED(Username) orelse ?UNDEFINED(Password) ->
-    {error, username_or_passwd_undefined};
+init({SuperQuery, AuthQuery, HashType}) ->
+    {ok, #state{super_query = SuperQuery, auth_query = AuthQuery, hash_type = HashType}}.
 
-check(#mqtt_client{username = Username}, Password,
-        #state{auth_sql = AuthSql, hash_type = HashType}) ->
-    case emqttd_pgsql_client:squery(replvar(AuthSql, Username)) of
-        {ok, _, []} ->
-            {error, not_found};
-        {ok, _, [Record]} ->
-            check_pass(Record, Password, HashType);
-        {error, Error} ->
-            {error, Error}
+check(#mqtt_client{username = Username}, _Password, _State) when ?UNDEFINED(Username) ->
+    {error, username_undefined};
+
+check(Client, Password, #state{super_query = SuperQuery}) when ?UNDEFINED(Password) ->
+    case is_superuser(SuperQuery, Client) of
+        true  -> ok;
+        false -> {error, password_undefined}
+    end;
+
+check(Client, Password, #state{super_query = SuperQuery,
+                               auth_query  = {AuthSql, AuthParams},
+                               hash_type   = HashType}) ->
+    case is_superuser(SuperQuery, Client) of
+        false -> case equery(AuthSql, AuthParams, Client) of
+                    {ok, _, [Record]} ->
+                        check_pass(Record, Password, HashType);
+                    {ok, _, []} ->
+                        {error, not_found};
+                    {error, Error} ->
+                        {error, Error}
+                 end;
+        true  -> ok
     end.
-
-description() -> "Authentication with PostgreSQL".
-
-replvar(AuthSql, Username) ->
-    re:replace(AuthSql, "%u", Username, [global, {return, list}]).
 
 check_pass({PassHash}, Password, HashType) ->
     case PassHash =:= hash(HashType, Password) of
@@ -68,4 +81,94 @@ check_pass({PassHash, Salt}, Password, {HashType, salt}) ->
 
 hash(Type, Password) ->
     emqttd_auth_mod:passwd_hash(Type, Password).
+
+description() -> "Authentication with PostgreSQL".
+
+%%--------------------------------------------------------------------
+%% Is Superuser?
+%%--------------------------------------------------------------------
+
+-spec(is_superuser(undefined | {string(), list()}, mqtt_client()) -> boolean()).
+is_superuser(undefined, _Client) ->
+    false;
+is_superuser({SuperSql, Params}, Client) ->
+    case equery(SuperSql, Params, Client) of
+        {ok, [_Super], [{true}]} ->
+            true;
+        {ok, [_Super], [_False]} ->
+            false;
+        {ok, [_Super], []} ->
+            false;
+        {error, _Error} ->
+            false
+    end.
+
+%%--------------------------------------------------------------------
+%% Avoid SQL Injection: Parse SQL to Parameter Query.
+%%--------------------------------------------------------------------
+
+parse_query(undefined) ->
+    undefined;
+parse_query(Sql) ->
+    case re:run(Sql, "'%[uca]'", [global, {capture, all, list}]) of
+        {match, Variables} ->
+            Params = [Var || [Var] <- Variables],
+            {pgvar(Sql, Params), Params};
+        nomatch ->
+            {Sql, []}
+    end.
+
+pgvar(Sql, Params) ->
+    Vars = ["$" ++ integer_to_list(I) || I <- lists:seq(1, length(Params))],
+    lists:foldl(fun({Param, Var}, S) ->
+            re:replace(S, Param, Var, [global, {return, list}])
+        end, Sql, lists:zip(Params, Vars)).
+
+%%--------------------------------------------------------------------
+%% PostgreSQL Connect/Query
+%%--------------------------------------------------------------------
+
+connect(Opts) ->
+    Host     = get_value(host, Opts),
+    Username = get_value(username, Opts),
+    Password = get_value(password, Opts),
+    epgsql:connect(Host, Username, Password, conn_opts(Opts)).
+
+conn_opts(Opts) ->
+    conn_opts(Opts, []).
+conn_opts([], Acc) ->
+    Acc;
+conn_opts([Opt = {database, _}|Opts], Acc) ->
+    conn_opts(Opts, [Opt|Acc]);
+conn_opts([Opt = {ssl, _}|Opts], Acc) ->
+    conn_opts(Opts, [Opt|Acc]);
+conn_opts([Opt = {port, _}|Opts], Acc) ->
+    conn_opts(Opts, [Opt|Acc]);
+conn_opts([Opt = {timeout, _}|Opts], Acc) ->
+    conn_opts(Opts, [Opt|Acc]);
+conn_opts([_Opt|Opts], Acc) ->
+    conn_opts(Opts, Acc).
+
+squery(Sql) ->
+    ecpool:with_client(?MODULE, fun(C) -> epgsql:squery(C, Sql) end).
+
+equery(Sql, Params) ->
+    ecpool:with_client(?MODULE, fun(C) -> epgsql:equery(C, Sql, Params) end).
+
+equery(Sql, Params, Client) ->
+    ecpool:with_client(?MODULE, fun(C) -> epgsql:equery(C, Sql, replvar(Params, Client)) end).
+
+replvar(Params, Client) ->
+    replvar(Params, Client, []).
+
+replvar([], _Client, Acc) ->
+    lists:reverse(Acc);
+replvar(["'%u'" | Params], Client = #mqtt_client{username = Username}, Acc) ->
+    replvar(Params, Client, [Username | Acc]);
+replvar(["'%c'" | Params], Client = #mqtt_client{client_id = ClientId}, Acc) ->
+    replvar(Params, Client, [ClientId | Acc]);
+replvar(["'%a'" | Params], Client = #mqtt_client{peername = {IpAddr, _}}, Acc) ->
+    replvar(Params, Client, [inet_parse:ntoa(IpAddr) | Acc]);
+replvar([Param | Params], Client, Acc) ->
+    replvar(Params, Client, [Param | Acc]).
 
