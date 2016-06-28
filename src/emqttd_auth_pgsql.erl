@@ -153,9 +153,11 @@ squery(Sql) ->
     ecpool:with_client(?MODULE, fun(C) -> epgsql:squery(C, Sql) end).
 
 equery(Sql, Params) ->
+    io:format("PgSQL enquery/2: ~s, ~p~n", [Sql, Params]),
     ecpool:with_client(?MODULE, fun(C) -> epgsql:equery(C, Sql, Params) end).
 
 equery(Sql, Params, Client) ->
+    io:format("PgSQL equery/3: ~s, ~p~n", [Sql, Params]),
     ecpool:with_client(?MODULE, fun(C) -> epgsql:equery(C, Sql, replvar(Params, Client)) end).
 
 replvar(Params, Client) ->
