@@ -52,7 +52,7 @@ check(Client, Password, #state{super_query = SuperQuery,
                                auth_query  = AuthSql,
                                hash_type   = HashType}) ->
     case is_superuser(SuperQuery, Client) of
-        false -> case squery(feed_var(AuthSql, Client)) of
+        false -> case squery(feed_var(Client, AuthSql)) of
                     {ok, _, [Record]} ->
                         check_pass(Record, Password, HashType);
                     {ok, _, []} ->
