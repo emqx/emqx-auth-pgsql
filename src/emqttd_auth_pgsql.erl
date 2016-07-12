@@ -26,7 +26,7 @@
 
 -behaviour(ecpool_worker).
 
--export([is_superuser/2, parse_query/1, connect/1, squery/1, equery/2, equery/3]).
+-export([is_superuser/2, feed_var/2, parse_query/1, connect/1, squery/1, equery/2, equery/3]).
 
 -record(state, {super_query, auth_query, hash_type}).
 
@@ -49,10 +49,10 @@ check(Client, Password, #state{super_query = SuperQuery}) when ?UNDEFINED(Passwo
     end;
 
 check(Client, Password, #state{super_query = SuperQuery,
-                               auth_query  = {AuthSql, AuthParams},
+                               auth_query  = AuthSql,
                                hash_type   = HashType}) ->
     case is_superuser(SuperQuery, Client) of
-        false -> case equery(AuthSql, AuthParams, Client) of
+        false -> case squery(feed_var(AuthSql, Client)) of
                     {ok, _, [Record]} ->
                         check_pass(Record, Password, HashType);
                     {ok, _, []} ->
@@ -91,8 +91,8 @@ description() -> "Authentication with PostgreSQL".
 -spec(is_superuser(undefined | {string(), list()}, mqtt_client()) -> boolean()).
 is_superuser(undefined, _Client) ->
     false;
-is_superuser({SuperSql, Params}, Client) ->
-    case equery(SuperSql, Params, Client) of
+is_superuser(SuperSql, Client) ->
+    case squery(feed_var(Client, SuperSql)) of
         {ok, [_Super], [{true}]} ->
             true;
         {ok, [_Super], [_False]} ->
@@ -159,6 +159,15 @@ equery(Sql, Params) ->
 equery(Sql, Params, Client) ->
     io:format("PgSQL equery/3: ~s, ~p~n", [Sql, Params]),
     ecpool:with_client(?MODULE, fun(C) -> epgsql:equery(C, Sql, replvar(Params, Client)) end).
+
+feed_var(#mqtt_client{client_id = ClientId,
+                      username  = Username,
+                      peername  = {IpAddr, _}}, AclSql) ->
+    Vars = [{"%u", Username}, {"%c", ClientId}, {"%a", inet_parse:ntoa(IpAddr)}],
+    lists:foldl(fun({Var, Val}, Sql) -> feed_var(Sql, Var, Val) end, AclSql, Vars).
+
+feed_var(Sql, Var, Val) ->
+    re:replace(Sql, Var, Val, [global, {return, list}]).
 
 replvar(Params, Client) ->
     replvar(Params, Client, []).

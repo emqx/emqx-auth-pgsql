@@ -21,24 +21,28 @@
 
 -include_lib("emqttd/include/emqttd.hrl").
 
+-import(emqttd_auth_pgsql, [feed_var/2]).
+
 %% ACL callbacks
 -export([init/1, check_acl/2, reload_acl/1, description/0]).
 
 -record(state, {super_query, acl_query, acl_nomatch}).
 
 init({SuperQuery, AclQuery, AclNomatch}) ->
-    io:format("AclQuery: ~p~n", [AclQuery]),
     {ok, #state{super_query = SuperQuery, acl_query = AclQuery, acl_nomatch = AclNomatch}}.
+
+check_acl({#mqtt_client{username = undefined}, _PubSub, _Topic}, _State) ->
+    {error, username_undefined};
 
 check_acl({#mqtt_client{username = <<$$, _/binary>>}, _PubSub, _Topic}, _State) ->
     {error, bad_username};
 
 check_acl({Client, PubSub, Topic}, #state{super_query = SuperQuery,
-                                          acl_query   = {AclSql, AclParams},
+                                          acl_query   = AclSql,
                                           acl_nomatch = Default}) ->
 
     case emqttd_auth_pgsql:is_superuser(SuperQuery, Client) of
-        false -> case emqttd_auth_pgsql:equery(AclSql, AclParams, Client) of
+        false -> case emqttd_auth_pgsql:squery(feed_var(Client, AclSql)) of
                     {ok, _, []} ->
                         Default;
                     {ok, _, Rows} ->

@@ -18,8 +18,6 @@
 
 -behaviour(application).
 
--import(emqttd_auth_pgsql, [parse_query/1]).
-
 %% Application callbacks
 -export([start/2, prep_stop/1, stop/1]).
 
@@ -31,20 +29,20 @@
 
 start(_StartType, _StartArgs) ->
     {ok, Sup} = emqttd_auth_pgsql_sup:start_link(),
-    SuperQuery = parse_query(application:get_env(?APP, superquery, undefined)),
+    SuperQuery = application:get_env(?APP, superquery, undefined),
     ok = register_auth_mod(SuperQuery), ok = register_acl_mod(SuperQuery),
     {ok, Sup}.
 
 register_auth_mod(SuperQuery) ->
     {ok, AuthQuery} = application:get_env(?APP, authquery),
     {ok, HashType}  = application:get_env(?APP, password_hash),
-    AuthEnv = {SuperQuery, parse_query(AuthQuery), HashType},
+    AuthEnv = {SuperQuery, AuthQuery, HashType},
     emqttd_access_control:register_mod(auth, emqttd_auth_pgsql, AuthEnv).
 
 register_acl_mod(SuperQuery) ->
     with_acl_enabled(fun(AclQuery) ->
         {ok, AclNomatch} = application:get_env(?APP, acl_nomatch),
-        AclEnv = {SuperQuery, parse_query(AclQuery), AclNomatch},
+        AclEnv = {SuperQuery, AclQuery, AclNomatch},
         emqttd_access_control:register_mod(acl, emqttd_acl_pgsql, AclEnv)
     end).
 
