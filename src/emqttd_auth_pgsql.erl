@@ -162,12 +162,16 @@ equery(Sql, Params, Client) ->
 
 feed_var(#mqtt_client{client_id = ClientId,
                       username  = Username,
-                      peername  = {IpAddr, _}}, AclSql) ->
-    Vars = [{"%u", Username}, {"%c", ClientId}, {"%a", inet_parse:ntoa(IpAddr)}],
-    lists:foldl(fun({Var, Val}, Sql) -> feed_var(Sql, Var, Val) end, AclSql, Vars).
+                      peername  = Peername}, AclSql) ->
+    Vars = [{"%u", Username}, {"%c", ClientId}, {"%a", ipaddr(Peername)}],
+    Vars1 = [Var || Var = {_, V} <- Vars, V =/= undefined],
+    lists:foldl(fun({Var, Val}, Sql) -> feed_var(Sql, Var, Val) end, AclSql, Vars1).
 
 feed_var(Sql, Var, Val) ->
     re:replace(Sql, Var, Val, [global, {return, list}]).
+
+ipaddr(undefined)   -> undefined;
+ipaddr({IpAddr, _}) -> inet_parse:ntoa(IpAddr).
 
 replvar(Params, Client) ->
     replvar(Params, Client, []).
