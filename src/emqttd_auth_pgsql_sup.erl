@@ -35,7 +35,7 @@ start_link() ->
 
 init([]) ->
 
-    {ok, Env} = application:get_env(?APP, pgsql_pool),
+    {ok, Env} = gen_conf:value(?APP, pgsql_pool),
 
     PoolSpec = ecpool:pool_spec(?APP, ?APP, ?APP, Env),
 
