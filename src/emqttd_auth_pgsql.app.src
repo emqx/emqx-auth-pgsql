@@ -1,7 +1,7 @@
 {application, emqttd_auth_pgsql,
  [
   {description, "emqttd Authentication against PostgreSQL"},
-  {vsn, "1.1"},
+  {vsn, "2.0"},
   {modules, []},
   {registered, []},
   {modules, []},
