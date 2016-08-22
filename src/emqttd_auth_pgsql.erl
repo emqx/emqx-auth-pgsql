@@ -16,11 +16,15 @@
 
 -module(emqttd_auth_pgsql).
 
--import(proplists, [get_value/2]).
-
 -behaviour(emqttd_auth_mod).
 
+-import(proplists, [get_value/2]).
+
+-include("emqttd_auth_pgsql.hrl").
+
 -include_lib("emqttd/include/emqttd.hrl").
+
+-export([pool_name/1]).
 
 -export([init/1, check/3, description/0]).
 
@@ -31,6 +35,8 @@
 -record(state, {super_query, auth_query, hash_type}).
 
 -define(UNDEFINED(S), (S =:= undefined orelse S =:= <<>>)).
+
+pool_name(Pool) -> list_to_atom(lists:concat([?APP, '_', Pool])).
 
 %%--------------------------------------------------------------------
 %% Auth Module Callbacks

@@ -19,25 +19,25 @@
 -behaviour(supervisor).
 
 %% API
--export([start_link/0]).
+-export([start_link/1]).
 
 %% Supervisor callbacks
 -export([init/1]).
 
 -define(APP, emqttd_auth_pgsql).
 
-start_link() ->
-    supervisor:start_link({local, ?MODULE}, ?MODULE, []).
+start_link(Pools) ->
+    supervisor:start_link({local, ?MODULE}, ?MODULE, [Pools]).
 
 %%--------------------------------------------------------------------
 %% Supervisor callbacks
 %%--------------------------------------------------------------------
 
-init([]) ->
 
-    {ok, Env} = gen_conf:value(?APP, pgsql_pool),
+init([Pools]) ->
+    %% MySQL Connection Pool...
+    {ok, {{one_for_one, 10, 100}, [pool_spec(Pool, Env) || {pgsql, Pool, Env} <- Pools]}}.
 
-    PoolSpec = ecpool:pool_spec(?APP, ?APP, ?APP, Env),
-
-    {ok, { {one_for_all, 10, 100}, [PoolSpec]} }.
+pool_spec(Pool, Env) ->
+    ecpool:pool_spec({?APP, Pool}, ?APP:pool_name(Pool), ?APP, Env).
 

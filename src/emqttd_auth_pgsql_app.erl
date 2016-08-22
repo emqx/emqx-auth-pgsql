@@ -31,9 +31,11 @@
 
 start(_StartType, _StartArgs) ->
     gen_conf:init(?APP),
-    {ok, Sup} = emqttd_auth_pgsql_sup:start_link(),
+    Pools = gen_conf:list(?APP, pgsql),
+    {ok, Sup} = emqttd_auth_pgsql_sup:start_link(Pools),
     SuperQuery = parse_query(gen_conf:value(?APP, superquery)),
-    ok = register_auth_mod(SuperQuery), ok = register_acl_mod(SuperQuery),
+    ok = register_auth_mod(SuperQuery),
+    ok = register_acl_mod(SuperQuery),
     {ok, Sup}.
 
 register_auth_mod(SuperQuery) ->
