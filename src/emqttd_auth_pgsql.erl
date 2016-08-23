@@ -24,8 +24,6 @@
 
 -include_lib("emqttd/include/emqttd.hrl").
 
--export([pool_name/1]).
-
 -export([init/1, check/3, description/0]).
 
 -behaviour(ecpool_worker).
@@ -35,8 +33,6 @@
 -record(state, {super_query, auth_query, hash_type}).
 
 -define(UNDEFINED(S), (S =:= undefined orelse S =:= <<>>)).
-
-pool_name(Pool) -> list_to_atom(lists:concat([?APP, '_', Pool])).
 
 %%--------------------------------------------------------------------
 %% Auth Module Callbacks
@@ -156,15 +152,15 @@ conn_opts([_Opt|Opts], Acc) ->
     conn_opts(Opts, Acc).
 
 squery(Sql) ->
-    ecpool:with_client(?MODULE, fun(C) -> epgsql:squery(C, Sql) end).
+    ecpool:with_client(?APP, fun(C) -> epgsql:squery(C, Sql) end).
 
 equery(Sql, Params) ->
     io:format("PgSQL enquery/2: ~s, ~p~n", [Sql, Params]),
-    ecpool:with_client(?MODULE, fun(C) -> epgsql:equery(C, Sql, Params) end).
+    ecpool:with_client(?APP, fun(C) -> epgsql:equery(C, Sql, Params) end).
 
 equery(Sql, Params, Client) ->
     io:format("PgSQL equery/3: ~s, ~p~n", [Sql, Params]),
-    ecpool:with_client(?MODULE, fun(C) -> epgsql:equery(C, Sql, replvar(Params, Client)) end).
+    ecpool:with_client(?APP, fun(C) -> epgsql:equery(C, Sql, replvar(Params, Client)) end).
 
 replvar(Params, Client) ->
     replvar(Params, Client, []).

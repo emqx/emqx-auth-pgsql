@@ -14,7 +14,6 @@
 %% limitations under the License.
 %%--------------------------------------------------------------------
 
-%% @doc ACL with PostgreSQL
 -module(emqttd_acl_pgsql).
 
 -behaviour(emqttd_acl_mod).

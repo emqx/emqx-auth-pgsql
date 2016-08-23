@@ -16,6 +16,8 @@
 
 -module(emqttd_auth_pgsql_app).
 
+-include("emqttd_auth_pgsql.hrl").
+
 -behaviour(application).
 
 -import(emqttd_auth_pgsql, [parse_query/1]).
@@ -23,17 +25,14 @@
 %% Application callbacks
 -export([start/2, prep_stop/1, stop/1]).
 
--define(APP, emqttd_auth_pgsql).
-
 %%--------------------------------------------------------------------
 %% Application callbacks
 %%--------------------------------------------------------------------
 
 start(_StartType, _StartArgs) ->
     gen_conf:init(?APP),
-    Pools = gen_conf:list(?APP, pgsql),
-    {ok, Sup} = emqttd_auth_pgsql_sup:start_link(Pools),
-    SuperQuery = parse_query(gen_conf:value(?APP, superquery)),
+    {ok, Sup} = emqttd_auth_pgsql_sup:start_link(),
+    SuperQuery = parse_query(gen_conf:value(?APP, superquery, undefined)),
     ok = register_auth_mod(SuperQuery),
     ok = register_acl_mod(SuperQuery),
     {ok, Sup}.
