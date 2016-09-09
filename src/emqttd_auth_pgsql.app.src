@@ -1,7 +1,8 @@
-{application, emqttd_plugin_pgsql,
+{application, emqttd_auth_pgsql,
  [
-  {description, "emqttd PostgreSQL Plugin"},
-  {vsn, "1.1.3"},
+  {description, "emqttd Authentication against PostgreSQL"},
+  {vsn, "2.0"},
+  {modules, []},
   {registered, []},
   {modules, []},
   {applications, [
@@ -10,7 +11,7 @@
                   epgsql,
                   ecpool
                  ]},
-  {mod, { emqttd_plugin_pgsql_app, []}},
+  {mod, { emqttd_auth_pgsql_app, []}},
   {env, []}
  ]}.
 

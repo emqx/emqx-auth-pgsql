@@ -1,88 +1,66 @@
 
-emqttd_plugin_pgsql
-===================
+emqttd_auth_pgsql
+=================
 
 Authentication/ACL with PostgreSQL Database.
 
 Build Plugin
 ------------
 
-Build the plugin in emqttd project. Checkout the plugin to 'emqttd/plugins/' folder:
+make && make tests
 
-If the submodules exist:
+Configuration
+-------------
 
-```
-git submodule update --remote plugins/emqttd_plugin_pgsql
-```
-
-Orelse:
-
-```
-git submodule add https://github.com/emqtt/emqttd_plugin_pgsql.git plugins/emqttd_plugin_pgsql
-
-make && make dist
-```
-
-Configure Plugin
-----------------
-
-File: etc/plugin.config
+File: etc/emqttd_auth_pgsql.conf
 
 ```erlang
-[
+{pgsql_pool, [
+  %% pool options
+  {pool_size, 8},
+  {auto_reconnect, 3},
 
-  {emqttd_plugin_pgsql, [
+  %% pgsql options
+  {host, "localhost"},
+  {port, 5432},
+  {ssl, false},
+  {username, "feng"},
+  {password, ""},
+  {database, "mqtt"},
+  {encoding,  utf8}
+]}.
 
-    {pgsql_pool, [
-      %% ecpool options
-      {pool_size, 8},
-      {auto_reconnect, 3},
+%% Variables: %u = username, %c = clientid, %a = ipaddress
 
-      %% pgsql options
-      {host, "localhost"},
-      {port, 5432},
-      {username, "feng"},
-      {password, ""},
-      {database, "mqtt"},
-      {encoding,  utf8}
-    ]},
+%% Superuser Query
+{superquery, "select is_superuser from mqtt_user where username = '%u' limit 1"}.
 
-    %% Variables: %u = username, %c = clientid, %a = ipaddress
+%% Authentication Query: select password only
+{authquery, "select password from mqtt_user where username = '%u' limit 1"}.
 
-    %% Superuser Query
-    {superquery, "select is_superuser from mqtt_user where username = '%u' limit 1"},
+%% hash algorithm: plain, md5, sha, sha256, pbkdf2?
+{password_hash, sha256}.
 
-    %% Authentication Query: select password only
-    {authquery, "select password from mqtt_user where username = '%u' limit 1"},
+%% select password with salt
+%% {authquery, "select password, salt from mqtt_user where username = '%u'"}.
 
-    %% hash algorithm: md5, sha, sha256, pbkdf2?
-    {password_hash, sha256},
+%% sha256 with salt prefix
+%% {password_hash, {salt, sha256}}.
 
-    %% select password with salt
-    %% {authquery, "select password, salt from mqtt_user where username = '%u'"},
+%% sha256 with salt suffix
+%% {password_hash, {sha256, salt}}.
 
-    %% sha256 with salt prefix
-    %% {password_hash, {salt, sha256}},
+%% Comment this query, the acl will be disabled. Notice: don't edit this query!
+{aclquery, "select allow, ipaddr, username, clientid, access, topic from mqtt_acl where ipaddr = '%a' or username = '%u' or username = '$all' or clientid = '%c'"}.
 
-    %% sha256 with salt suffix
-    %% {password_hash, {sha256, salt}},
-
-    %% Comment this query, the acl will be disabled. Notice: don't edit this query!
-    {aclquery, "select allow, ipaddr, username, clientid, access, topic from mqtt_acl
-                 where ipaddr = '%a' or username = '%u' or username = '$all' or clientid = '%c'"},
-
-    %% If no rules matched, return...
-    {acl_nomatch, allow}
-  ]}
-].
+%% If no rules matched, return...
+{acl_nomatch, allow}.
 ```
 
 Load Plugin
 -----------
 
-```
-./bin/emqttd_ctl plugins load emqttd_plugin_pgsql
-```
+./bin/emqttd_ctl plugins load emqttd_auth_pgsql
 
 Auth Table
 ----------
@@ -125,15 +103,13 @@ VALUES
 
 **Notice that only one value allowed for ipaddr, username and clientid fields.**
 
-Support
--------
-
-Fork this project and implement your own authentication/ACL mechanism.
-
-Contact feng at emqtt.io if any issues.
-
 License
 -------
 
 Apache License Version 2.0
+
+Author
+------
+
+Feng Lee <feng@emqtt.io>
 

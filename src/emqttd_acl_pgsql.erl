@@ -14,12 +14,11 @@
 %% limitations under the License.
 %%--------------------------------------------------------------------
 
-%% @doc ACL with PostgreSQL
 -module(emqttd_acl_pgsql).
 
 -behaviour(emqttd_acl_mod).
 
--include("../../../include/emqttd.hrl").
+-include_lib("emqttd/include/emqttd.hrl").
 
 %% ACL callbacks
 -export([init/1, check_acl/2, reload_acl/1, description/0]).
@@ -31,14 +30,14 @@ init({SuperQuery, AclQuery, AclNomatch}) ->
     {ok, #state{super_query = SuperQuery, acl_query = AclQuery, acl_nomatch = AclNomatch}}.
 
 check_acl({#mqtt_client{username = <<$$, _/binary>>}, _PubSub, _Topic}, _State) ->
-    {error, bad_username};
+    ignore;
 
 check_acl({Client, PubSub, Topic}, #state{super_query = SuperQuery,
                                           acl_query   = {AclSql, AclParams},
                                           acl_nomatch = Default}) ->
 
-    case emqttd_plugin_pgsql:is_superuser(SuperQuery, Client) of
-        false -> case emqttd_plugin_pgsql:equery(AclSql, AclParams, Client) of
+    case emqttd_auth_pgsql:is_superuser(SuperQuery, Client) of
+        false -> case emqttd_auth_pgsql:equery(AclSql, AclParams, Client) of
                     {ok, _, []} ->
                         Default;
                     {ok, _, Rows} ->
@@ -49,7 +48,8 @@ check_acl({Client, PubSub, Topic}, #state{super_query = SuperQuery,
                             nomatch          -> Default
                         end;
                     {error, Error} ->
-                        {error, Error}
+                        io:format("query Error: ~p~n", [Error]),
+                        ignore 
                  end;
         true  -> allow
     end.

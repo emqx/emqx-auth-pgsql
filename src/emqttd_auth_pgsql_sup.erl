@@ -14,8 +14,9 @@
 %% limitations under the License.
 %%--------------------------------------------------------------------
 
-%% @doc emqttd pgsql plugin supervisor
--module(emqttd_plugin_pgsql_sup).
+-module(emqttd_auth_pgsql_sup).
+
+-include("emqttd_auth_pgsql.hrl").
 
 -behaviour(supervisor).
 
@@ -25,8 +26,6 @@
 %% Supervisor callbacks
 -export([init/1]).
 
--define(APP, emqttd_plugin_pgsql).
-
 start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
@@ -35,10 +34,8 @@ start_link() ->
 %%--------------------------------------------------------------------
 
 init([]) ->
-
-    {ok, Env} = application:get_env(?APP, pgsql_pool),
-
-    PoolSpec = ecpool:pool_spec(?APP, ?APP, ?APP, Env),
-
-    {ok, { {one_for_all, 10, 100}, [PoolSpec]} }.
+    %% PgSQL Connection Pool
+    {ok, PoolEnv} = gen_conf:value(?APP, pgsql_pool),
+    PoolSpec = ecpool:pool_spec(?APP, ?APP, ?APP, PoolEnv),
+    {ok, {{one_for_one, 10, 100}, [PoolSpec]}}.
 
