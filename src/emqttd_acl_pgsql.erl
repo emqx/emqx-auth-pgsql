@@ -29,11 +29,10 @@ init({AclQuery, AclNomatch}) ->
     {ok, #state{acl_query = AclQuery, acl_nomatch = AclNomatch}}.
 
 check_acl({#mqtt_client{username = <<$$, _/binary>>}, _PubSub, _Topic}, _State) ->
-    {error, bad_username};
+    ignore;
 
 check_acl({Client, PubSub, Topic}, #state{acl_query   = {AclSql, AclParams},
                                           acl_nomatch = Default}) ->
-
     case emqttd_auth_pgsql:equery(AclSql, AclParams, Client) of
         {ok, _, []} ->
             Default;
@@ -44,8 +43,8 @@ check_acl({Client, PubSub, Topic}, #state{acl_query   = {AclSql, AclParams},
                 {matched, deny}  -> deny;
                 nomatch          -> Default
             end;
-        {error, Error} ->
-            {error, Error}
+        {error, _Reason} ->
+            ignore
     end.
 
 match(_Client, _Topic, []) ->
