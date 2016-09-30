@@ -32,37 +32,30 @@
 start(_StartType, _StartArgs) ->
     gen_conf:init(?APP),
     {ok, Sup} = emqttd_auth_pgsql_sup:start_link(),
-    SuperQuery = parse_query(gen_conf:value(?APP, superquery, undefined)),
-    ok = register_auth_mod(SuperQuery),
-    ok = register_acl_mod(SuperQuery),
+    if_enabled(auth_query, fun(AuthQuery) ->
+        SuperQuery = parse_query(gen_conf:value(?APP, superquery, undefined)),
+        {ok, HashType}  = gen_conf:value(?APP, password_hash),
+        AuthEnv = {AuthQuery, SuperQuery, HashType},
+        ok = emqttd_access_control:register_mod(auth, emqttd_auth_pgsql, AuthEnv)
+    end),
+    if_enabled(acl_query, fun(AclQuery) ->
+        {ok, AclNomatch} = gen_conf:value(?APP, acl_nomatch),
+        AclEnv = {AclQuery, AclNomatch},
+        ok = emqttd_access_control:register_mod(acl, emqttd_acl_pgsql, AclEnv)
+    end),
     {ok, Sup}.
 
-register_auth_mod(SuperQuery) ->
-    {ok, AuthQuery} = gen_conf:value(?APP, authquery),
-    {ok, HashType}  = gen_conf:value(?APP, password_hash),
-    AuthEnv = {SuperQuery, parse_query(AuthQuery), HashType},
-    emqttd_access_control:register_mod(auth, emqttd_auth_pgsql, AuthEnv).
-
-register_acl_mod(SuperQuery) ->
-    with_acl_enabled(fun(AclQuery) ->
-        {ok, AclNomatch} = gen_conf:value(?APP, acl_nomatch),
-        AclEnv = {SuperQuery, parse_query(AclQuery), AclNomatch},
-        emqttd_access_control:register_mod(acl, emqttd_acl_pgsql, AclEnv)
-    end).
-
 prep_stop(State) ->
+    emqttd_access_control:unregister_mod(acl, emqttd_acl_pgsql),
     emqttd_access_control:unregister_mod(auth, emqttd_auth_pgsql),
-    with_acl_enabled(fun(_AclQuery) ->
-        emqttd_access_control:unregister_mod(acl, emqttd_acl_pgsql)
-    end),
     State.
 
 stop(_State) ->
     ok.
 
-with_acl_enabled(Fun) ->
-    case gen_conf:value(?APP, aclquery) of
-        {ok, AclQuery} -> Fun(AclQuery);
-        undefined      -> ok
+if_enabled(Cfg, Fun) ->
+    case gen_conf:value(?APP, Cfg) of
+        {ok, Query} -> Fun(parse_query(Query));
+        undefined   -> ok
     end.
 

@@ -23,34 +23,29 @@
 %% ACL callbacks
 -export([init/1, check_acl/2, reload_acl/1, description/0]).
 
--record(state, {super_query, acl_query, acl_nomatch}).
+-record(state, {acl_query, acl_nomatch}).
 
-init({SuperQuery, AclQuery, AclNomatch}) ->
-    io:format("AclQuery: ~p~n", [AclQuery]),
-    {ok, #state{super_query = SuperQuery, acl_query = AclQuery, acl_nomatch = AclNomatch}}.
+init({AclQuery, AclNomatch}) ->
+    {ok, #state{acl_query = AclQuery, acl_nomatch = AclNomatch}}.
 
 check_acl({#mqtt_client{username = <<$$, _/binary>>}, _PubSub, _Topic}, _State) ->
     {error, bad_username};
 
-check_acl({Client, PubSub, Topic}, #state{super_query = SuperQuery,
-                                          acl_query   = {AclSql, AclParams},
+check_acl({Client, PubSub, Topic}, #state{acl_query   = {AclSql, AclParams},
                                           acl_nomatch = Default}) ->
 
-    case emqttd_auth_pgsql:is_superuser(SuperQuery, Client) of
-        false -> case emqttd_auth_pgsql:equery(AclSql, AclParams, Client) of
-                    {ok, _, []} ->
-                        Default;
-                    {ok, _, Rows} ->
-                        Rules = filter(PubSub, compile(Rows)),
-                        case match(Client, Topic, Rules) of
-                            {matched, allow} -> allow;
-                            {matched, deny}  -> deny;
-                            nomatch          -> Default
-                        end;
-                    {error, Error} ->
-                        {error, Error}
-                 end;
-        true  -> allow
+    case emqttd_auth_pgsql:equery(AclSql, AclParams, Client) of
+        {ok, _, []} ->
+            Default;
+        {ok, _, Rows} ->
+            Rules = filter(PubSub, compile(Rows)),
+            case match(Client, Topic, Rules) of
+                {matched, allow} -> allow;
+                {matched, deny}  -> deny;
+                nomatch          -> Default
+            end;
+        {error, Error} ->
+            {error, Error}
     end.
 
 match(_Client, _Topic, []) ->

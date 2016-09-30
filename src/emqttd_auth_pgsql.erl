@@ -28,9 +28,9 @@
 
 -behaviour(ecpool_worker).
 
--export([is_superuser/2, parse_query/1, connect/1, squery/1, equery/2, equery/3]).
+-export([parse_query/1, connect/1, squery/1, equery/2, equery/3]).
 
--record(state, {super_query, auth_query, hash_type}).
+-record(state, {auth_query, super_query, hash_type}).
 
 -define(UNDEFINED(S), (S =:= undefined orelse S =:= <<>>)).
 
@@ -38,32 +38,24 @@
 %% Auth Module Callbacks
 %%--------------------------------------------------------------------
 
-init({SuperQuery, AuthQuery, HashType}) ->
-    {ok, #state{super_query = SuperQuery, auth_query = AuthQuery, hash_type = HashType}}.
+init({AuthQuery, SuperQuery, HashType}) ->
+    {ok, #state{auth_query = AuthQuery, super_query = SuperQuery, hash_type = HashType}}.
 
-check(#mqtt_client{username = Username}, _Password, _State) when ?UNDEFINED(Username) ->
-    {error, username_undefined};
+check(#mqtt_client{username = Username}, Password, _State) when ?UNDEFINED(Username); ?UNDEFINED(Password) ->
+    {error, username_or_password_undefined};
 
-check(Client, Password, #state{super_query = SuperQuery}) when ?UNDEFINED(Password) ->
-    case is_superuser(SuperQuery, Client) of
-        true  -> ok;
-        false -> {error, password_undefined}
-    end;
-
-check(Client, Password, #state{super_query = SuperQuery,
-                               auth_query  = {AuthSql, AuthParams},
+check(Client, Password, #state{auth_query  = {AuthSql, AuthParams},
+                               super_query = SuperQuery,
                                hash_type   = HashType}) ->
-    case is_superuser(SuperQuery, Client) of
-        false -> case equery(AuthSql, AuthParams, Client) of
-                    {ok, _, [Record]} ->
-                        check_pass(Record, Password, HashType);
-                    {ok, _, []} ->
-                        {error, not_found};
-                    {error, Error} ->
-                        {error, Error}
-                 end;
-        true  -> ok
-    end.
+    Result = case equery(AuthSql, AuthParams, Client) of
+                 {ok, _, [Record]} ->
+                     check_pass(Record, Password, HashType);
+                 {ok, _, []} ->
+                     {error, not_found};
+                 {error, Reason} ->
+                     {error, Reason}
+             end,
+    case Result of ok -> {ok, is_superuser(SuperQuery, Client)}; Error -> Error end.
 
 check_pass({PassHash}, Password, HashType) ->
     case PassHash =:= hash(HashType, Password) of
@@ -155,11 +147,9 @@ squery(Sql) ->
     ecpool:with_client(?APP, fun(C) -> epgsql:squery(C, Sql) end).
 
 equery(Sql, Params) ->
-    io:format("PgSQL enquery/2: ~s, ~p~n", [Sql, Params]),
     ecpool:with_client(?APP, fun(C) -> epgsql:equery(C, Sql, Params) end).
 
 equery(Sql, Params, Client) ->
-    io:format("PgSQL equery/3: ~s, ~p~n", [Sql, Params]),
     ecpool:with_client(?APP, fun(C) -> epgsql:equery(C, Sql, replvar(Params, Client)) end).
 
 replvar(Params, Client) ->
