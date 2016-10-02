@@ -32,13 +32,13 @@
 start(_StartType, _StartArgs) ->
     gen_conf:init(?APP),
     {ok, Sup} = emqttd_auth_pgsql_sup:start_link(),
-    if_enabled(auth_query, fun(AuthQuery) ->
+    if_enabled(authquery, fun(AuthQuery) ->
         SuperQuery = parse_query(gen_conf:value(?APP, superquery, undefined)),
         {ok, HashType}  = gen_conf:value(?APP, password_hash),
         AuthEnv = {AuthQuery, SuperQuery, HashType},
         ok = emqttd_access_control:register_mod(auth, emqttd_auth_pgsql, AuthEnv)
     end),
-    if_enabled(acl_query, fun(AclQuery) ->
+    if_enabled(aclquery, fun(AclQuery) ->
         {ok, AclNomatch} = gen_conf:value(?APP, acl_nomatch),
         AclEnv = {AclQuery, AclNomatch},
         ok = emqttd_access_control:register_mod(acl, emqttd_acl_pgsql, AclEnv)
