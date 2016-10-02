@@ -63,8 +63,9 @@ all() ->
 
 groups() ->
     [{emqttd_auth_pgsql, [sequence],
-     [check_acl,
-      check_auth]}].
+     [check_auth,
+      check_acl
+      ]}].
 
 init_per_suite(Config) ->
     DataDir = proplists:get_value(data_dir, Config),
@@ -106,7 +107,7 @@ drop_acl_() ->
 check_auth(_) ->
     init_auth_(), 
     User1 = #mqtt_client{client_id = <<"client1">>, username = <<"testuser1">>},
-    ok = emqttd_access_control:auth(User1, <<"pass1">>),
+    {ok, false} = emqttd_access_control:auth(User1, <<"pass1">>),
     {error, _} = emqttd_access_control:auth(User1, <<"pass">>),
     drop_auth_().
 
