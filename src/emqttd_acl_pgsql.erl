@@ -64,9 +64,14 @@ compile(Rows) ->
 compile([], Acc) ->
     Acc;
 compile([{Allow, IpAddr, Username, ClientId, Access, Topic}|T], Acc) ->
-    Who  = who(IpAddr, Username, ClientId),
-    Term = {allow(Allow), Who, access(Access), [topic(Topic)]},
-    compile(T, [emqttd_access_rule:compile(Term) | Acc]).
+    try
+        Who  = who(IpAddr, Username, ClientId),
+        Term = {allow(Allow), Who, access(Access), [topic(Topic)]},
+        compile(T, [emqttd_access_rule:compile(Term) | Acc])
+    catch throw : undefined_who ->
+        lager:error("undefined_who"),
+        compile(T, Acc)
+    end.
 
 who(_, <<"$all">>, _) ->
     all;
