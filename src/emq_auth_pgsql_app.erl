@@ -14,47 +14,42 @@
 %% limitations under the License.
 %%--------------------------------------------------------------------
 
--module(emqttd_auth_pgsql_app).
+-module(emq_auth_pgsql_app).
 
--include("emqttd_auth_pgsql.hrl").
+-include("emq_auth_pgsql.hrl").
 
 -behaviour(application).
 
--import(emqttd_auth_pgsql, [parse_query/1]).
+-import(emq_auth_pgsql, [parse_query/1]).
 
 %% Application callbacks
--export([start/2, prep_stop/1, stop/1]).
+-export([start/2, stop/1]).
 
 %%--------------------------------------------------------------------
 %% Application callbacks
 %%--------------------------------------------------------------------
 
 start(_StartType, _StartArgs) ->
-    gen_conf:init(?APP),
-    {ok, Sup} = emqttd_auth_pgsql_sup:start_link(),
+    {ok, Sup} = emq_auth_pgsql_sup:start_link(),
     if_enabled(auth_query, fun(AuthQuery) ->
-        SuperQuery = parse_query(gen_conf:value(?APP, superquery, undefined)),
-        {ok, HashType}  = gen_conf:value(?APP, password_hash),
+        SuperQuery = parse_query(application:get_env(?APP, super_query, undefined)),
+        {ok, HashType}  = application:get_env(?APP, passwd_hash),
         AuthEnv = {AuthQuery, SuperQuery, HashType},
-        ok = emqttd_access_control:register_mod(auth, emqttd_auth_pgsql, AuthEnv)
+        ok = emqttd_access_control:register_mod(auth, emq_auth_pgsql, AuthEnv)
     end),
     if_enabled(acl_query, fun(AclQuery) ->
-        {ok, AclNomatch} = gen_conf:value(?APP, acl_nomatch),
+        {ok, AclNomatch} = application:get_env(?APP, acl_nomatch),
         AclEnv = {AclQuery, AclNomatch},
-        ok = emqttd_access_control:register_mod(acl, emqttd_acl_pgsql, AclEnv)
+        ok = emqttd_access_control:register_mod(acl, emq_acl_pgsql, AclEnv)
     end),
     {ok, Sup}.
 
-prep_stop(State) ->
-    emqttd_access_control:unregister_mod(acl, emqttd_acl_pgsql),
-    emqttd_access_control:unregister_mod(auth, emqttd_auth_pgsql),
-    State.
-
 stop(_State) ->
-    ok.
+    emqttd_access_control:unregister_mod(acl, emq_acl_pgsql),
+    emqttd_access_control:unregister_mod(auth, emq_auth_pgsql).
 
-if_enabled(Cfg, Fun) ->
-    case gen_conf:value(?APP, Cfg) of
+if_enabled(Par, Fun) ->
+    case application:get_env(?APP, Par) of
         {ok, Query} -> Fun(parse_query(Query));
         undefined   -> ok
     end.
