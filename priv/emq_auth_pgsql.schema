@@ -1,47 +1,47 @@
 %%-*- mode: erlang -*-
-%% emq_auth_pgsl config
-{mapping, "emq.auth.pgsql.server", "emq_auth_pgsql.server", [
+%% emq_auth_pgsl config mapping
+{mapping, "auth.pgsql.server", "emq_auth_pgsql.server", [
   {default, {"127.0.0.1", 5432}},
-  {datatype, ip}
+  {datatype, [integer, ip]}
 ]}.
 
-{mapping, "emq.auth.pgsql.pool", "emq_auth_pgsql.server", [
+{mapping, "auth.pgsql.pool", "emq_auth_pgsql.server", [
   {default, 8},
   {datatype, integer}
 ]}.
 
-{mapping, "emq.auth.pgsql.database", "emq_auth_pgsql.server", [
+{mapping, "auth.pgsql.database", "emq_auth_pgsql.server", [
   {datatype, string}
 ]}.
 
-{mapping, "emq.auth.pgsql.username", "emq_auth_pgsql.server", [
+{mapping, "auth.pgsql.username", "emq_auth_pgsql.server", [
   {default, ""},
   {datatype, string}
 ]}.
 
-{mapping, "emq.auth.pgsql.password", "emq_auth_pgsql.server", [
+{mapping, "auth.pgsql.password", "emq_auth_pgsql.server", [
   {default, ""},
   {datatype, string}
 ]}.
 
-{mapping, "emq.auth.pgsql.encoding", "emq_auth_pgsql.server", [
+{mapping, "auth.pgsql.encoding", "emq_auth_pgsql.server", [
   {default, utf8},
   {datatype, atom}
 ]}.
 
-{mapping, "emq.auth.pgsql.ssl", "emq_auth_pgsql.server", [
+{mapping, "auth.pgsql.ssl", "emq_auth_pgsql.server", [
   {default, false},
   {datatype, {enum, [true, false]}}
 ]}.
 
 {translation, "emq_auth_pgsql.server", fun(Conf) ->
-  {Host, Port} = cuttlefish:conf_get("emq.auth.pgsql.server", Conf),
-  Pool = cuttlefish:conf_get("emq.auth.pgsql.pool", Conf),
-  Username = cuttlefish:conf_get("emq.auth.pgsql.username", Conf),
-  Passwd = cuttlefish:conf_get("emq.auth.pgsql.password", Conf, ""),
-  DB = cuttlefish:conf_get("emq.auth.pgsql.database", Conf),
-  Encoding = cuttlefish:conf_get("emq.auth.pgsql.encoding", Conf),
-  Ssl = cuttlefish:conf_get("emq.auth.pgsql.ssl", Conf),
+  {Host, Port} = cuttlefish:conf_get("auth.pgsql.server", Conf),
+  Pool = cuttlefish:conf_get("auth.pgsql.pool", Conf),
+  Username = cuttlefish:conf_get("auth.pgsql.username", Conf),
+  Passwd = cuttlefish:conf_get("auth.pgsql.password", Conf, ""),
+  DB = cuttlefish:conf_get("auth.pgsql.database", Conf),
+  Encoding = cuttlefish:conf_get("auth.pgsql.encoding", Conf),
+  Ssl = cuttlefish:conf_get("auth.pgsql.ssl", Conf),
   [{pool_size, Pool},
    {auto_reconnect, 1},
    {host, Host},
@@ -53,24 +53,24 @@
    {ssl, Ssl}]
 end}.
 
-{mapping, "emq.auth.pgsql.authquery", "emq_auth_pgsql.auth_query", [
+{mapping, "auth.pgsql.authquery", "emq_auth_pgsql.auth_query", [
   {datatype, string}
 ]}.
 
-{mapping, "emq.auth.pgsql.passwd.hash", "emq_auth_pgsql.passwd_hash", [
+{mapping, "auth.pgsql.passwd.hash", "emq_auth_pgsql.passwd_hash", [
   {default, "sha256"},
   {datatype, string}
 ]}.
 
-{mapping, "emq.auth.pgsql.superquery", "emq_auth_pgsql.super_query", [
+{mapping, "auth.pgsql.superquery", "emq_auth_pgsql.super_query", [
   {datatype, string}
 ]}.
 
-{mapping, "emq.auth.pgsql.aclquery", "emq_auth_pgsql.acl_query", [
+{mapping, "auth.pgsql.aclquery", "emq_auth_pgsql.acl_query", [
   {datatype, string}
 ]}.
 
-{mapping, "emq.auth.pgsql.acl.nomatch", "emq_auth_pgsql.acl_nomatch", [
+{mapping, "auth.pgsql.acl.nomatch", "emq_auth_pgsql.acl_nomatch", [
   {default, deny},
   {datatype, {enum, [deny, allow]}}
 ]}.
