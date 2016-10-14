@@ -53,24 +53,24 @@
    {ssl, Ssl}]
 end}.
 
-{mapping, "auth.pgsql.authquery", "emq_auth_pgsql.auth_query", [
+{mapping, "auth.pgsql.auth_query", "emq_auth_pgsql.auth_query", [
   {datatype, string}
 ]}.
 
-{mapping, "auth.pgsql.passwd.hash", "emq_auth_pgsql.passwd_hash", [
-  {default, "sha256"},
+{mapping, "auth.pgsql.password_hash", "emq_auth_pgsql.password_hash", [
+  {default, sha256},
+  {datatype, {enum, [plain, md5, sha, sha256, pbkdf2]}}
+]}.
+
+{mapping, "auth.pgsql.super_query", "emq_auth_pgsql.super_query", [
   {datatype, string}
 ]}.
 
-{mapping, "auth.pgsql.superquery", "emq_auth_pgsql.super_query", [
+{mapping, "auth.pgsql.acl_query", "emq_auth_pgsql.acl_query", [
   {datatype, string}
 ]}.
 
-{mapping, "auth.pgsql.aclquery", "emq_auth_pgsql.acl_query", [
-  {datatype, string}
-]}.
-
-{mapping, "auth.pgsql.acl.nomatch", "emq_auth_pgsql.acl_nomatch", [
+{mapping, "auth.pgsql.acl_nomatch", "emq_auth_pgsql.acl_nomatch", [
   {default, deny},
   {datatype, {enum, [deny, allow]}}
 ]}.
