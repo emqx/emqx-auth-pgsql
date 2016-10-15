@@ -20,7 +20,7 @@
 
 -behaviour(application).
 
--import(emq_auth_pgsql, [parse_query/1]).
+-import(emq_auth_pgsql_cli, [parse_query/1]).
 
 %% Application callbacks
 -export([start/2, stop/1]).
@@ -33,7 +33,7 @@ start(_StartType, _StartArgs) ->
     {ok, Sup} = emq_auth_pgsql_sup:start_link(),
     if_enabled(auth_query, fun(AuthQuery) ->
         SuperQuery = parse_query(application:get_env(?APP, super_query, undefined)),
-        {ok, HashType}  = application:get_env(?APP, passwd_hash),
+        {ok, HashType}  = application:get_env(?APP, password_hash),
         AuthEnv = {AuthQuery, SuperQuery, HashType},
         ok = emqttd_access_control:register_mod(auth, emq_auth_pgsql, AuthEnv)
     end),
