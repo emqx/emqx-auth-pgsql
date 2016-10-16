@@ -9,3 +9,4 @@ logs/
 test/ct.cover.spec
 test/*.beam
 data/
+.DS_Store
