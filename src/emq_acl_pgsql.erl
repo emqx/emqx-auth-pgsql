@@ -14,7 +14,7 @@
 %% limitations under the License.
 %%--------------------------------------------------------------------
 
--module(emqttd_acl_pgsql).
+-module(emq_acl_pgsql).
 
 -behaviour(emqttd_acl_mod).
 
@@ -33,7 +33,7 @@ check_acl({#mqtt_client{username = <<$$, _/binary>>}, _PubSub, _Topic}, _State) 
 
 check_acl({Client, PubSub, Topic}, #state{acl_query   = {AclSql, AclParams},
                                           acl_nomatch = Default}) ->
-    case emqttd_auth_pgsql:equery(AclSql, AclParams, Client) of
+    case emq_auth_pgsql_cli:equery(AclSql, AclParams, Client) of
         {ok, _, []} ->
             Default;
         {ok, _, Rows} ->

@@ -1,11 +1,13 @@
 ebin
 .rebar
 .eunit
+.DS_Store
 .erlang.mk/
 deps/
-emqttd_auth_pgsql.d
+emq_auth_pgsql.d
 ct.coverdata
 logs/
 test/ct.cover.spec
 test/*.beam
-
+data/
+.DS_Store

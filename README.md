@@ -1,6 +1,6 @@
 
-emqttd_auth_pgsql
-=================
+emq_auth_pgsql
+==============
 
 Authentication/ACL with PostgreSQL Database.
 
@@ -12,55 +12,52 @@ make && make tests
 Configuration
 -------------
 
-File: etc/emqttd_auth_pgsql.conf
+File: etc/emq_auth_pgsql.conf
 
-```erlang
-{pgsql_pool, [
-  %% pool options
-  {pool_size, 8},
-  {auto_reconnect, 3},
+```
+## Postgre Server
+auth.pgsql.server = 127.0.0.1:5432
 
-  %% pgsql options
-  {host, "localhost"},
-  {port, 5432},
-  {ssl, false},
-  {username, "feng"},
-  {password, ""},
-  {database, "mqtt"},
-  {encoding,  utf8}
-]}.
+auth.pgsql.pool = 8
 
-%% Variables: %u = username, %c = clientid, %a = ipaddress
+auth.pgsql.username = root
 
-%% Superuser Query
-{superquery, "select is_superuser from mqtt_user where username = '%u' limit 1"}.
+#auth.pgsql.password = 
 
-%% Authentication Query: select password only
-{authquery, "select password from mqtt_user where username = '%u' limit 1"}.
+auth.pgsql.database = mqtt
 
-%% hash algorithm: plain, md5, sha, sha256, pbkdf2?
-{password_hash, sha256}.
+auth.pgsql.encoding = utf8
 
-%% select password with salt
-%% {authquery, "select password, salt from mqtt_user where username = '%u'"}.
+auth.pgsql.ssl = false
 
-%% sha256 with salt prefix
-%% {password_hash, {salt, sha256}}.
+## Variables: %u = username, %c = clientid, %a = ipaddress
 
-%% sha256 with salt suffix
-%% {password_hash, {sha256, salt}}.
+## Authentication Query: select password only
+auth.pgsql.authquery = select password from mqtt_user where username = '%u' limit 1
 
-%% Comment this query, the acl will be disabled. Notice: don't edit this query!
-{aclquery, "select allow, ipaddr, username, clientid, access, topic from mqtt_acl where ipaddr = '%a' or username = '%u' or username = '$all' or clientid = '%c'"}.
+## Password hash: plain, md5, sha, sha256, pbkdf2
+auth.pgsql.passwd.hash = sha256
 
-%% If no rules matched, return...
-{acl_nomatch, allow}.
+## sha256 with salt prefix
+## auth.pgsql.passwd.hash = salt sha256
+
+## sha256 with salt suffix
+## auth.pgsql.passwd.hash = sha256 salt
+
+## Superuser Query
+auth.pgsql.superquery = select is_superuser from mqtt_user where username = '%u' limit 1
+
+## ACL Query. Comment this query, the acl will be disabled.
+auth.pgsql.aclquery = select allow, ipaddr, username, clientid, access, topic from mqtt_acl where ipaddr = '%a' or username = '%u' or username = '$all' or clientid = '%c'
+
+## If no rules matched, return...
+auth.pgsql.acl.nomatch = deny
 ```
 
 Load Plugin
 -----------
 
-./bin/emqttd_ctl plugins load emqttd_auth_pgsql
+./bin/emqttd_ctl plugins load emq_auth_pgsql
 
 Auth Table
 ----------

@@ -1,15 +1,17 @@
-PROJECT = emqttd_auth_pgsql
+PROJECT = emq_auth_pgsql
 PROJECT_DESCRIPTION = Authentication/ACL with PostgreSQL
-PROJECT_VERSION = 2.0
+PROJECT_VERSION = 3.0
 
-DEPS = epgsql ecpool gen_conf
+DEPS = epgsql ecpool
 
 dep_epgsql   = git https://github.com/epgsql/epgsql master
 dep_ecpool   = git https://github.com/emqtt/ecpool master
-dep_gen_conf = git https://github.com/emqtt/gen_conf master
 
 BUILD_DEPS = emqttd
-dep_emqttd = git https://github.com/emqtt/emqttd emq20
+dep_emqttd = git https://github.com/emqtt/emqttd master
+
+TEST_DEPS = cuttlefish
+dep_cuttlefish = git https://github.com/emqtt/cuttlefish
 
 ERLC_OPTS += +'{parse_transform, lager_transform}'
 
@@ -18,3 +20,7 @@ COVER = true
 include erlang.mk
 
 app:: rebar.config
+
+app.config::
+	cuttlefish -l info -e etc/ -c etc/emq_auth_pgsql.conf -i priv/emq_auth_pgsql.schema -d data
+
