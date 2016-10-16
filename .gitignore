@@ -1,6 +1,7 @@
 ebin
 .rebar
 .eunit
+.DS_Store
 .erlang.mk/
 deps/
 emq_auth_pgsql.d
