@@ -1,0 +1,77 @@
+%%-*- mode: erlang -*-
+%% emq_auth_pgsl config mapping
+{mapping, "auth.pgsql.server", "emq_auth_pgsql.server", [
+  {default, {"127.0.0.1", 5432}},
+  {datatype, [integer, ip]}
+]}.
+
+{mapping, "auth.pgsql.pool", "emq_auth_pgsql.server", [
+  {default, 8},
+  {datatype, integer}
+]}.
+
+{mapping, "auth.pgsql.database", "emq_auth_pgsql.server", [
+  {datatype, string}
+]}.
+
+{mapping, "auth.pgsql.username", "emq_auth_pgsql.server", [
+  {default, ""},
+  {datatype, string}
+]}.
+
+{mapping, "auth.pgsql.password", "emq_auth_pgsql.server", [
+  {default, ""},
+  {datatype, string}
+]}.
+
+{mapping, "auth.pgsql.encoding", "emq_auth_pgsql.server", [
+  {default, utf8},
+  {datatype, atom}
+]}.
+
+{mapping, "auth.pgsql.ssl", "emq_auth_pgsql.server", [
+  {default, false},
+  {datatype, {enum, [true, false]}}
+]}.
+
+{translation, "emq_auth_pgsql.server", fun(Conf) ->
+  {Host, Port} = cuttlefish:conf_get("auth.pgsql.server", Conf),
+  Pool = cuttlefish:conf_get("auth.pgsql.pool", Conf),
+  Username = cuttlefish:conf_get("auth.pgsql.username", Conf),
+  Passwd = cuttlefish:conf_get("auth.pgsql.password", Conf, ""),
+  DB = cuttlefish:conf_get("auth.pgsql.database", Conf),
+  Encoding = cuttlefish:conf_get("auth.pgsql.encoding", Conf),
+  Ssl = cuttlefish:conf_get("auth.pgsql.ssl", Conf),
+  [{pool_size, Pool},
+   {auto_reconnect, 1},
+   {host, Host},
+   {port, Port},
+   {username, Username},
+   {password, Passwd},
+   {database, DB},
+   {encoding, Encoding},
+   {ssl, Ssl}]
+end}.
+
+{mapping, "auth.pgsql.auth_query", "emq_auth_pgsql.auth_query", [
+  {datatype, string}
+]}.
+
+{mapping, "auth.pgsql.password_hash", "emq_auth_pgsql.password_hash", [
+  {default, sha256},
+  {datatype, {enum, [plain, md5, sha, sha256, pbkdf2]}}
+]}.
+
+{mapping, "auth.pgsql.super_query", "emq_auth_pgsql.super_query", [
+  {datatype, string}
+]}.
+
+{mapping, "auth.pgsql.acl_query", "emq_auth_pgsql.acl_query", [
+  {datatype, string}
+]}.
+
+{mapping, "auth.pgsql.acl_nomatch", "emq_auth_pgsql.acl_nomatch", [
+  {default, deny},
+  {datatype, {enum, [deny, allow]}}
+]}.
+
