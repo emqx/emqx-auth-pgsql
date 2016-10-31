@@ -1,5 +1,6 @@
 %%-*- mode: erlang -*-
 %% emq_auth_pgsl config mapping
+
 {mapping, "auth.pgsql.server", "emq_auth_pgsql.server", [
   {default, {"127.0.0.1", 5432}},
   {datatype, [integer, ip, string]}
@@ -35,7 +36,7 @@
 ]}.
 
 {translation, "emq_auth_pgsql.server", fun(Conf) ->
-  {RHost, RPort} =
+  {PgHost, PgPort} =
   case cuttlefish:conf_get("auth.pgsql.server", Conf) of
     {Ip, Port} -> {Ip, Port};
     S          -> case string:tokens(S, ":") of
@@ -51,8 +52,8 @@
   Ssl = cuttlefish:conf_get("auth.pgsql.ssl", Conf),
   [{pool_size, Pool},
    {auto_reconnect, 1},
-   {host, RHost},
-   {port, RPort},
+   {host, PgHost},
+   {port, PgPort},
    {username, Username},
    {password, Passwd},
    {database, DB},
