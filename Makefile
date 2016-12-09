@@ -10,6 +10,7 @@ dep_ecpool = git https://github.com/emqtt/ecpool master
 BUILD_DEPS = emqttd
 dep_emqttd = git https://github.com/emqtt/emqttd emq20
 
+NO_AUTOPATCH = cuttlefish
 TEST_DEPS = cuttlefish
 dep_cuttlefish = git https://github.com/emqtt/cuttlefish
 
