@@ -69,7 +69,6 @@ groups() ->
 init_per_suite(Config) ->
     DataDir = proplists:get_value(data_dir, Config),
     application:start(lager),
-    peg_com(DataDir),
     [start_apps(App, DataDir) || App <- [emqttd, emq_auth_pgsql]],
     Config.
 
@@ -125,24 +124,4 @@ start_apps(App, DataDir) ->
     Vals = proplists:get_value(App, NewConfig),
     [application:set_env(App, Par, Value) || {Par, Value} <- Vals],
     application:ensure_all_started(App).
-
-peg_com(DataDir) ->
-    ParsePeg = file2(3, DataDir, "conf_parse.peg"),
-    neotoma:file(ParsePeg),
-    ParseErl = file2(3, DataDir, "conf_parse.erl"),
-    compile:file(ParseErl, []),
-
-    DurationPeg = file2(3, DataDir, "cuttlefish_duration_parse.peg"),
-    neotoma:file(DurationPeg),
-    DurationErl = file2(3, DataDir, "cuttlefish_duration_parse.erl"),
-    compile:file(DurationErl, []).
-    
-
-file2(Times, Dir, FileName) when Times < 1 ->
-    filename:join([Dir, "deps", "cuttlefish","src", FileName]);
-
-file2(Times, Dir, FileName) ->
-    Dir1 = filename:dirname(Dir),
-    file2(Times - 1, Dir1, FileName).
-
 
