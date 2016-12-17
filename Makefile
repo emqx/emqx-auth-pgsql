@@ -7,12 +7,11 @@ DEPS = epgsql ecpool
 dep_epgsql = git https://github.com/epgsql/epgsql master
 dep_ecpool = git https://github.com/emqtt/ecpool master
 
-BUILD_DEPS = emqttd
+BUILD_DEPS = emqttd cuttlefish
 dep_emqttd = git https://github.com/emqtt/emqttd emq20
+dep_cuttlefish = git https://github.com/emqtt/cuttlefish
 
 NO_AUTOPATCH = cuttlefish
-TEST_DEPS = cuttlefish
-dep_cuttlefish = git https://github.com/emqtt/cuttlefish
 
 ERLC_OPTS += +'{parse_transform, lager_transform}'
 
@@ -23,5 +22,5 @@ include erlang.mk
 app:: rebar.config
 
 app.config::
-	cuttlefish -l info -e etc/ -c etc/emq_auth_pgsql.conf -i priv/emq_auth_pgsql.schema -d data
+	deps/cuttlefish/cuttlefish -l info -e etc/ -c etc/emq_auth_pgsql.conf -i priv/emq_auth_pgsql.schema -d data
 
