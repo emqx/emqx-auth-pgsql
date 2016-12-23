@@ -1,6 +1,6 @@
 PROJECT = emq_auth_pgsql
 PROJECT_DESCRIPTION = Authentication/ACL with PostgreSQL
-PROJECT_VERSION = 2.0.1
+PROJECT_VERSION = 2.0.5
 
 DEPS = epgsql ecpool
 
@@ -8,7 +8,7 @@ dep_epgsql = git https://github.com/epgsql/epgsql master
 dep_ecpool = git https://github.com/emqtt/ecpool master
 
 BUILD_DEPS = emqttd cuttlefish
-dep_emqttd = git https://github.com/emqtt/emqttd emq20
+dep_emqttd = git https://github.com/emqtt/emqttd master
 dep_cuttlefish = git https://github.com/emqtt/cuttlefish
 
 NO_AUTOPATCH = cuttlefish
