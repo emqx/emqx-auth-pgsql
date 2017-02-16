@@ -1,5 +1,5 @@
 %%--------------------------------------------------------------------
-%% Copyright (c) 2015-2017 Feng Lee <feng@emqtt.io>.
+%% Copyright (c) 2013-2017 EMQ Enterprise, Inc. (http://emqtt.io)
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -16,9 +16,9 @@
 
 -module(emq_auth_pgsql_sup).
 
--include("emq_auth_pgsql.hrl").
-
 -behaviour(supervisor).
+
+-include("emq_auth_pgsql.hrl").
 
 %% API
 -export([start_link/0]).
