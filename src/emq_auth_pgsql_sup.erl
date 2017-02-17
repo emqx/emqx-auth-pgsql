@@ -18,7 +18,7 @@
 
 -behaviour(supervisor).
 
--include("emqx_auth_pgsql.hrl").
+-include("emq_auth_pgsql.hrl").
 
 %% API
 -export([start_link/0]).
