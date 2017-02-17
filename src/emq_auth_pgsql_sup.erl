@@ -29,10 +29,6 @@
 start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
-%%--------------------------------------------------------------------
-%% Supervisor callbacks
-%%--------------------------------------------------------------------
-
 init([]) ->
     %% PgSQL Connection Pool
     {ok, Opts} = application:get_env(?APP, server),
