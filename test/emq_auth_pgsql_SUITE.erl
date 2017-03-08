@@ -54,8 +54,8 @@
 
 -define(INIT_AUTH, "INSERT INTO mqtt_user (id, is_superuser, username, password, salt)
                      VALUES  
-                     (1, false, 'testuser1', 'pass1', 'plain'),
-                     (2, false, 'testuser2', 'pass2', 'plain')").
+                     (1, false, 'testuser1', 'b95de58f7646da3b2de64466b3429244885addac', 'salt'),
+                     (2, true, 'testuser2', '3ef26c7a285bbfdebd8ebe895dbada207d926c15', 'salt')").
 
 
 all() ->
@@ -103,8 +103,11 @@ drop_acl_() ->
 check_auth(_) ->
     init_auth_(), 
     User1 = #mqtt_client{client_id = <<"client1">>, username = <<"testuser1">>},
-    {ok, false} = emqttd_access_control:auth(User1, <<"pass1">>),
+    User2 = #mqtt_client{client_id = <<"client1">>, username = <<"testuser2">>},
+    {ok, false} = emqttd_access_control:auth(User1, <<"test">>),
     {error, _} = emqttd_access_control:auth(User1, <<"pass">>),
+    {ok, true} = emqttd_access_control:auth(User2, <<"test1">>),
+    {error, _} = emqttd_access_control:auth(User2, <<"pass">>),
     drop_auth_().
 
 init_auth_() ->

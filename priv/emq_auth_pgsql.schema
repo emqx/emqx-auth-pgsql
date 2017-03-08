@@ -69,6 +69,19 @@ end}.
   {datatype, string}
 ]}.
 
+{mapping, "auth.pgsql.pbkdf2_macfun", "emq_auth_pgsql.pbkdf2_macfun", [
+  {datatype, atom}
+]}.
+
+{mapping, "auth.pgsql.pbkdf2_iterations", "emq_auth_pgsql.pbkdf2_iterations", [
+  {datatype, integer}
+]}.
+
+{mapping, "auth.pgsql.pbkdf2_dklen", "emq_auth_pgsql.pbkdf2_dklen", [
+  {datatype, integer}
+]}.
+
+
 {mapping, "auth.pgsql.super_query", "emq_auth_pgsql.super_query", [
   {datatype, string}
 ]}.
