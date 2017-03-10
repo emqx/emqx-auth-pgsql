@@ -56,6 +56,12 @@ check_pass({PassHash}, Password, HashType) ->
         true  -> ok;
         false -> {error, password_error}
     end;
+
+check_pass({PassHash, Salt}, Password, {pbkdf2, Macfun, Iterations, Dklen}) ->
+    case PassHash =:= hash(pbkdf2, {Salt, Password, Macfun, Iterations, Dklen}) of
+        true  -> ok;
+        false -> {error, password_error}
+    end;
 check_pass({PassHash, Salt}, Password, {salt, HashType}) ->
     case PassHash =:= hash(HashType, <<Salt/binary, Password/binary>>) of
         true  -> ok;
@@ -71,6 +77,7 @@ hash(Type, Password) ->
     emqttd_auth_mod:passwd_hash(Type, Password).
 
 description() -> "Authentication with PostgreSQL".
+
 
 %%--------------------------------------------------------------------
 %% Is Superuser?

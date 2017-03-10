@@ -32,10 +32,10 @@ auth.pgsql.ssl = false
 
 ## Variables: %u = username, %c = clientid, %a = ipaddress
 
-## Authentication Query: select password only
+## Authentication Query: select password or password,salt
 auth.pgsql.authquery = select password from mqtt_user where username = '%u' limit 1
 
-## Password hash: plain, md5, sha, sha256, pbkdf2
+## Password hash: plain, md5, sha, sha256
 auth.pgsql.passwd.hash = sha256
 
 ## sha256 with salt prefix
@@ -43,6 +43,10 @@ auth.pgsql.passwd.hash = sha256
 
 ## sha256 with salt suffix
 ## auth.pgsql.passwd.hash = sha256 salt
+
+## pbkdf2 with macfun iterations dklen
+## macfun: md4, md5, ripemd160, sha, sha224, sha256, sha384, sha512
+## auth.mysql.password_hash = pbkdf2 sha256 1000 20
 
 ## Superuser Query
 auth.pgsql.superquery = select is_superuser from mqtt_user where username = '%u' limit 1
