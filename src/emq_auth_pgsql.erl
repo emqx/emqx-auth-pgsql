@@ -56,6 +56,11 @@ check_pass({PassHash}, Password, HashType) ->
         true  -> ok;
         false -> {error, password_error}
     end;
+check_pass({PassHash, Salt}, Password, pbkdf2) ->
+    case PassHash =:= hash(pbkdf2, {Salt,Password}) of
+        true  -> ok;
+        false -> {error, password_error}
+    end;    
 check_pass({PassHash, Salt}, Password, {salt, HashType}) ->
     case PassHash =:= hash(HashType, <<Salt/binary, Password/binary>>) of
         true  -> ok;
@@ -67,6 +72,11 @@ check_pass({PassHash, Salt}, Password, {HashType, salt}) ->
         false -> {error, password_error}
     end.
 
+hash(pbkdf2, {Salt,Password}) ->
+    Macfun = application:get_env(?APP, pbkdf2_macfun,sha256),
+    Iterations = application:get_env(?APP, pbkdf2_iterations,4096),
+    Dklen = application:get_env(?APP, pbkdf2_dklen,20),
+    emqttd_auth_mod:passwd_hash(pbkdf2,{Salt,Password,Macfun,Iterations,Dklen});
 hash(Type, Password) ->
     emqttd_auth_mod:passwd_hash(Type, Password).
 
