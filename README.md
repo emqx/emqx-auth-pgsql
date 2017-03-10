@@ -32,7 +32,7 @@ auth.pgsql.ssl = false
 
 ## Variables: %u = username, %c = clientid, %a = ipaddress
 
-## Authentication Query: select password or password,salt
+## Authentication Query: select password or password salt 
 auth.pgsql.authquery = select password from mqtt_user where username = '%u' limit 1
 
 ## Password hash: plain, md5, sha, sha256
