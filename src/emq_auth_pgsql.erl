@@ -48,7 +48,7 @@ check(Client, Password, #state{auth_query  = {AuthSql, AuthParams},
                 Error -> Error
             end;
          {ok, _, []} ->
-            gnore;
+            ignore;
          {error, Reason} ->
              {error, Reason}
      end.
