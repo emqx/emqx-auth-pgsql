@@ -41,15 +41,17 @@ check(#mqtt_client{username = Username}, Password, _State) when ?UNDEFINED(Usern
 check(Client, Password, #state{auth_query  = {AuthSql, AuthParams},
                                super_query = SuperQuery,
                                hash_type   = HashType}) ->
-    Result = case emq_auth_pgsql_cli:equery(AuthSql, AuthParams, Client) of
-                 {ok, _, [Record]} ->
-                     check_pass(Record, Password, HashType);
-                 {ok, _, []} ->
-                     {error, not_found};
-                 {error, Reason} ->
-                     {error, Reason}
-             end,
-    case Result of ok -> {ok, is_superuser(SuperQuery, Client)}; Error -> Error end.
+    case emq_auth_pgsql_cli:equery(AuthSql, AuthParams, Client) of
+        {ok, _, [Record]} ->
+            case check_pass(Record, Password, HashType) of
+                ok -> {ok, is_superuser(SuperQuery, Client)};
+                Error -> Error
+            end;
+         {ok, _, []} ->
+            gnore;
+         {error, Reason} ->
+             {error, Reason}
+     end.
 
 check_pass({PassHash}, Password, HashType) ->
     case PassHash =:= hash(HashType, Password) of
