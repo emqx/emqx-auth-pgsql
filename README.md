@@ -53,9 +53,6 @@ auth.pgsql.superquery = select is_superuser from mqtt_user where username = '%u'
 
 ## ACL Query. Comment this query, the acl will be disabled.
 auth.pgsql.aclquery = select allow, ipaddr, username, clientid, access, topic from mqtt_acl where ipaddr = '%a' or username = '%u' or username = '$all' or clientid = '%c'
-
-## If no rules matched, return...
-auth.pgsql.acl.nomatch = deny
 ```
 
 Load Plugin
