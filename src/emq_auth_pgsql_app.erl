@@ -16,9 +16,9 @@
 
 -module(emq_auth_pgsql_app).
 
--include("emq_auth_pgsql.hrl").
-
 -behaviour(application).
+
+-include("emq_auth_pgsql.hrl").
 
 -import(emq_auth_pgsql_cli, [parse_query/1]).
 

@@ -35,6 +35,18 @@
   {datatype, {enum, [true, false]}}
 ]}.
 
+{mapping, "auth.pgsql.ssl_opts.keyfile", "emq_auth_pgsql.server", [
+  {datatype, string}
+]}.
+
+{mapping, "auth.pgsql.ssl_opts.certfile", "emq_auth_pgsql.server", [
+  {datatype, string}
+]}.
+
+{mapping, "auth.pgsql.ssl_opts.cacertfile", "emq_auth_pgsql.server", [
+  {datatype, string}
+]}.
+
 {translation, "emq_auth_pgsql.server", fun(Conf) ->
   {PgHost, PgPort} =
   case cuttlefish:conf_get("auth.pgsql.server", Conf) of
@@ -50,6 +62,13 @@
   DB = cuttlefish:conf_get("auth.pgsql.database", Conf),
   Encoding = cuttlefish:conf_get("auth.pgsql.encoding", Conf),
   Ssl = cuttlefish:conf_get("auth.pgsql.ssl", Conf),
+
+  Filter  = fun(Opts) -> [{K, V} || {K, V} <- Opts, V =/= undefined] end,
+  SslOpts = fun(Prefix) ->
+                Filter([{keyfile,    cuttlefish:conf_get(Prefix ++ ".keyfile", Conf, undefined)},
+                        {certfile,   cuttlefish:conf_get(Prefix ++ ".certfile", Conf, undefined)},
+                        {cacertfile, cuttlefish:conf_get(Prefix ++ ".cacertfile", Conf, undefined)}])
+            end,
   [{pool_size, Pool},
    {auto_reconnect, 1},
    {host, PgHost},
@@ -58,7 +77,8 @@
    {password, Passwd},
    {database, DB},
    {encoding, Encoding},
-   {ssl, Ssl}]
+   {ssl, Ssl},
+   {ssl_opts, SslOpts("auth.pgsql.ssl_opts")}]
 end}.
 
 {mapping, "auth.pgsql.auth_query", "emq_auth_pgsql.auth_query", [
@@ -67,6 +87,18 @@ end}.
 
 {mapping, "auth.pgsql.password_hash", "emq_auth_pgsql.password_hash", [
   {datatype, string}
+]}.
+
+{mapping, "auth.pgsql.pbkdf2_macfun", "emq_auth_pgsql.pbkdf2_macfun", [
+  {datatype, atom}
+]}.
+
+{mapping, "auth.pgsql.pbkdf2_iterations", "emq_auth_pgsql.pbkdf2_iterations", [
+  {datatype, integer}
+]}.
+
+{mapping, "auth.pgsql.pbkdf2_dklen", "emq_auth_pgsql.pbkdf2_dklen", [
+  {datatype, integer}
 ]}.
 
 {mapping, "auth.pgsql.super_query", "emq_auth_pgsql.super_query", [
@@ -87,6 +119,7 @@ end}.
   case string:tokens(HashValue, " ") of
     [Hash]           -> list_to_atom(Hash);
     [Prefix, Suffix] -> {list_to_atom(Prefix), list_to_atom(Suffix)};
+    [Hash, MacFun, Iterations, Dklen] -> {list_to_atom(Hash), list_to_atom(MacFun), list_to_integer(Iterations), list_to_integer(Dklen)};
     _                -> plain
   end
 end}.
