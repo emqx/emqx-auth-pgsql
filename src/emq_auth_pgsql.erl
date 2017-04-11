@@ -54,27 +54,18 @@ check(Client, Password, #state{auth_query  = {AuthSql, AuthParams},
      end.
 
 check_pass({PassHash}, Password, HashType) ->
-    case PassHash =:= hash(HashType, Password) of
-        true  -> ok;
-        false -> {error, password_error}
-    end;
-
+    check_pass(PassHash, hash(HashType, Password));
 check_pass({PassHash, Salt}, Password, {pbkdf2, Macfun, Iterations, Dklen}) ->
-    case PassHash =:= hash(pbkdf2, {Salt, Password, Macfun, Iterations, Dklen}) of
-        true  -> ok;
-        false -> {error, password_error}
-    end;
-
+    check_pass(PassHash, hash(pbkdf2, {Salt, Password, Macfun, Iterations, Dklen}));
+check_pass({PassHash, Salt}, Password, {salt, bcrypt}) ->
+    check_pass(PassHash, hash(bcrypt, {Salt, Password}));
 check_pass({PassHash, Salt}, Password, {salt, HashType}) ->
-    case PassHash =:= hash(HashType, <<Salt/binary, Password/binary>>) of
-        true  -> ok;
-        false -> {error, password_error}
-    end;
+    check_pass(PassHash, hash(HashType, <<Salt/binary, Password/binary>>));
 check_pass({PassHash, Salt}, Password, {HashType, salt}) ->
-    case PassHash =:= hash(HashType, <<Password/binary, Salt/binary>>) of
-        true  -> ok;
-        false -> {error, password_error}
-    end.
+    check_pass(PassHash, hash(HashType, <<Password/binary, Salt/binary>>)).
+
+check_pass(PassHash, PassHash) -> ok;
+check_pass(_, _)               -> {error, password_error}. 
 
 hash(Type, Password) ->
     emqttd_auth_mod:passwd_hash(Type, Password).
