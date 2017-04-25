@@ -41,38 +41,31 @@ check(#mqtt_client{username = Username}, Password, _State) when ?UNDEFINED(Usern
 check(Client, Password, #state{auth_query  = {AuthSql, AuthParams},
                                super_query = SuperQuery,
                                hash_type   = HashType}) ->
-    Result = case emq_auth_pgsql_cli:equery(AuthSql, AuthParams, Client) of
-                 {ok, _, [Record]} ->
-                     check_pass(Record, Password, HashType);
-                 {ok, _, []} ->
-                     {error, not_found};
-                 {error, Reason} ->
-                     {error, Reason}
-             end,
-    case Result of ok -> {ok, is_superuser(SuperQuery, Client)}; Error -> Error end.
+    case emq_auth_pgsql_cli:equery(AuthSql, AuthParams, Client) of
+        {ok, _, [Record]} ->
+            case check_pass(Record, Password, HashType) of
+                ok -> {ok, is_superuser(SuperQuery, Client)};
+                Error -> Error
+            end;
+         {ok, _, []} ->
+            ignore;
+         {error, Reason} ->
+             {error, Reason}
+     end.
 
 check_pass({PassHash}, Password, HashType) ->
-    case PassHash =:= hash(HashType, Password) of
-        true  -> ok;
-        false -> {error, password_error}
-    end;
-
+    check_pass(PassHash, hash(HashType, Password));
 check_pass({PassHash, Salt}, Password, {pbkdf2, Macfun, Iterations, Dklen}) ->
-    case PassHash =:= hash(pbkdf2, {Salt, Password, Macfun, Iterations, Dklen}) of
-        true  -> ok;
-        false -> {error, password_error}
-    end;
-
+    check_pass(PassHash, hash(pbkdf2, {Salt, Password, Macfun, Iterations, Dklen}));
+check_pass({PassHash, Salt}, Password, {salt, bcrypt}) ->
+    check_pass(PassHash, hash(bcrypt, {Salt, Password}));
 check_pass({PassHash, Salt}, Password, {salt, HashType}) ->
-    case PassHash =:= hash(HashType, <<Salt/binary, Password/binary>>) of
-        true  -> ok;
-        false -> {error, password_error}
-    end;
+    check_pass(PassHash, hash(HashType, <<Salt/binary, Password/binary>>));
 check_pass({PassHash, Salt}, Password, {HashType, salt}) ->
-    case PassHash =:= hash(HashType, <<Password/binary, Salt/binary>>) of
-        true  -> ok;
-        false -> {error, password_error}
-    end.
+    check_pass(PassHash, hash(HashType, <<Password/binary, Salt/binary>>)).
+
+check_pass(PassHash, PassHash) -> ok;
+check_pass(_, _)               -> {error, password_error}. 
 
 hash(Type, Password) ->
     emqttd_auth_mod:passwd_hash(Type, Password).
