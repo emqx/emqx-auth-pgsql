@@ -50,7 +50,7 @@ check(Client, Password, #state{auth_query  = {AuthSql, AuthParams},
          {ok, _, []} ->
             ignore;
          {error, Reason} ->
-             {error, Reason}
+            {error, Reason}
      end.
 
 check_pass({PassHash}, Password, HashType) ->
