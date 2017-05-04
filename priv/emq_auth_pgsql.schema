@@ -109,11 +109,6 @@ end}.
   {datatype, string}
 ]}.
 
-{mapping, "auth.pgsql.acl_nomatch", "emq_auth_pgsql.acl_nomatch", [
-  {default, deny},
-  {datatype, {enum, [deny, allow]}}
-]}.
-
 {translation, "emq_auth_pgsql.password_hash", fun(Conf) ->
   HashValue = cuttlefish:conf_get("auth.pgsql.password_hash", Conf),
   case string:tokens(HashValue, " ") of

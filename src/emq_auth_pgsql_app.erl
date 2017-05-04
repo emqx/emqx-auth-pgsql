@@ -38,9 +38,7 @@ start(_StartType, _StartArgs) ->
         ok = emqttd_access_control:register_mod(auth, emq_auth_pgsql, AuthEnv)
     end),
     if_enabled(acl_query, fun(AclQuery) ->
-        {ok, AclNomatch} = application:get_env(?APP, acl_nomatch),
-        AclEnv = {AclQuery, AclNomatch},
-        ok = emqttd_access_control:register_mod(acl, emq_acl_pgsql, AclEnv)
+        ok = emqttd_access_control:register_mod(acl, emq_acl_pgsql, AclQuery)
     end),
     {ok, Sup}.
 

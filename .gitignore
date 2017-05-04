@@ -11,3 +11,5 @@ test/ct.cover.spec
 test/*.beam
 data/
 .DS_Store
+cover/
+eunit.coverdata
