@@ -30,32 +30,38 @@ auth.pgsql.encoding = utf8
 
 auth.pgsql.ssl = false
 
+##auth.pgsql.ssl_opts.keyfile =
+
+##auth.pgsql.ssl_opts.certfile =
+
+##auth.pgsql.ssl_opts.cacertfile =
+
 ## Variables: %u = username, %c = clientid, %a = ipaddress
 
-## Authentication Query: select password or password, salt 
-auth.pgsql.authquery = select password from mqtt_user where username = '%u' limit 1
+## Authentication Query: select password or password, salt
+auth.pgsql.auth_query = select password from mqtt_user where username = '%u' limit 1
 
 ## Password hash: plain, md5, sha, sha256, bcrypt
-auth.pgsql.passwd.hash = sha256
+auth.pgsql.password_hash = sha256
 
 ## sha256 with salt prefix
-## auth.pgsql.passwd.hash = salt sha256
+## auth.pgsql.password_hash = salt sha256
 
 ## sha256 with salt suffix
-## auth.pgsql.passwd.hash = sha256 salt
+## auth.pgsql.password_hash = sha256 salt
 
 ## bcrypt with salt prefix
 ## auth.pgsql.password_hash = salt bcrypt
 
 ## pbkdf2 with macfun iterations dklen
 ## macfun: md4, md5, ripemd160, sha, sha224, sha256, sha384, sha512
-## auth.mysql.password_hash = pbkdf2 sha256 1000 20
+## auth.pgsql.password_hash = pbkdf2 sha256 1000 20
 
 ## Superuser Query
-auth.pgsql.superquery = select is_superuser from mqtt_user where username = '%u' limit 1
+auth.pgsql.super_query = select is_superuser from mqtt_user where username = '%u' limit 1
 
 ## ACL Query. Comment this query, the acl will be disabled.
-auth.pgsql.aclquery = select allow, ipaddr, username, clientid, access, topic from mqtt_acl where ipaddr = '%a' or username = '%u' or username = '$all' or clientid = '%c'
+auth.pgsql.acl_query = select allow, ipaddr, username, clientid, access, topic from mqtt_acl where ipaddr = '%a' or username = '%u' or username = '$all' or clientid = '%c'
 ```
 
 Load Plugin
