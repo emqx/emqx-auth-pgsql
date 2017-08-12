@@ -40,11 +40,13 @@ start(_StartType, _StartArgs) ->
     if_enabled(acl_query, fun(AclQuery) ->
         ok = emqttd_access_control:register_mod(acl, emq_acl_pgsql, AclQuery)
     end),
+    emq_auth_pgsql_config:register(),
     {ok, Sup}.
 
 stop(_State) ->
     emqttd_access_control:unregister_mod(acl, emq_acl_pgsql),
-    emqttd_access_control:unregister_mod(auth, emq_auth_pgsql).
+    emqttd_access_control:unregister_mod(auth, emq_auth_pgsql),
+    emq_auth_pgsql_config:unregister().
 
 if_enabled(Par, Fun) ->
     case application:get_env(?APP, Par) of
