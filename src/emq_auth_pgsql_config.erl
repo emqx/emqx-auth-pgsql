@@ -70,7 +70,7 @@ register_config() ->
 config_callback([_, _, "server"], Value0) ->
     {Host, Port} = parse_servers(Value0),
     {ok, Env} = application:get_env(?APP, server),
-    Env1 = lists:keyreplace(hosts, 1, Env, {host, Host}),
+    Env1 = lists:keyreplace(host, 1, Env, {host, Host}),
     Env2 = lists:keyreplace(port, 1, Env1, {port, Port}),
     application:set_env(?APP, server, Env2),
     " successfully\n";
