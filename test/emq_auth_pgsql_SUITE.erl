@@ -69,7 +69,9 @@
 all() ->
     [{group, emq_auth_pgsql_auth},
      {group, emq_auth_pgsql_acl}, 
-     {group, emq_auth_pgsql}].
+     {group, emq_auth_pgsql},
+     {group, auth_pgsql_config}
+    ].
 
 groups() ->
     [{emq_auth_pgsql_auth, [sequence],
@@ -77,7 +79,8 @@ groups() ->
     {emq_auth_pgsql_acl, [sequence],
      [check_acl, acl_super]}, 
     {emq_auth_pgsql, [sequence],
-     [comment_config]}
+     [comment_config]},
+    {auth_pgsql_config, [sequence], [server_config]}
     ].
 
 init_per_suite(Config) ->
@@ -179,6 +182,37 @@ acl_super(_Config) ->
             ok
     end,
     emqttc:disconnect(C).
+
+server_config(_) ->
+    I = [{host, "localhost"},
+         {pool_size, 1},
+         {port, 5432},
+         {auto_reconnect, 1},
+         {username, "admin"},
+         {password, "public"},
+         {database, "sercrit"},
+         {encoding, utf8},
+         {ssl, false},
+         {ssl_opts,[]}],
+    SetConfigKeys = ["server=localhost:5432",
+                     "pool=1",
+                     "username=admin",
+                     "password=public",
+                     "database=sercrit",
+                     "encoding=gbk",
+                     "ssl=true",
+                     "ssl_opts.keyfile=/etc/keyfile",
+                     "ssl_opts.certfile=/key/certfile",
+                     "ssl_opts.cacertfile=key/cafile",
+                     "password_hash=salt,sha256"],
+    lists:foreach(fun set_cmd/1, SetConfigKeys),
+    {ok, E} =  application:get_env(emq_auth_pgsql, server),
+    {ok, Hash} =  application:get_env(emq_auth_pgsql, password_hash),
+    ?assertEqual(lists:sort(I), lists:sort(E)),
+    ?assertEqual('salt,sha256', Hash).
+
+set_cmd(Key) ->
+    emqttd_cli_config:run(["config", "set", string:join(["auth.pgsql", Key], "."), "--app=emq_auth_pgsql"]).
 
 init_acl_() ->
     {ok, Pid} = ecpool_worker:client(gproc_pool:pick_worker({ecpool, ?PID})),
