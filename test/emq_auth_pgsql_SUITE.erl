@@ -209,7 +209,7 @@ server_config(_) ->
     {ok, E} =  application:get_env(emq_auth_pgsql, server),
     {ok, Hash} =  application:get_env(emq_auth_pgsql, password_hash),
     ?assertEqual(lists:sort(I), lists:sort(E)),
-    ?assertEqual('salt,sha256', Hash).
+    ?assertEqual({salt,sha256}, Hash).
 
 set_cmd(Key) ->
     emqttd_cli_config:run(["config", "set", string:join(["auth.pgsql", Key], "."), "--app=emq_auth_pgsql"]).
