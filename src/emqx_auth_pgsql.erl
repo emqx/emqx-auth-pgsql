@@ -14,13 +14,13 @@
 %% limitations under the License.
 %%--------------------------------------------------------------------
 
--module(emq_auth_pgsql).
+-module(emqx_auth_pgsql).
 
--behaviour(emqttd_auth_mod).
+-behaviour(emqx_auth_mod).
 
--include("emq_auth_pgsql.hrl").
+-include("emqx_auth_pgsql.hrl").
 
--include_lib("emqttd/include/emqttd.hrl").
+-include_lib("emqx/include/emqx.hrl").
 
 -export([init/1, check/3, description/0]).
 
@@ -41,7 +41,7 @@ check(#mqtt_client{username = Username}, Password, _State) when ?UNDEFINED(Usern
 check(Client, Password, #state{auth_query  = {AuthSql, AuthParams},
                                super_query = SuperQuery,
                                hash_type   = HashType}) ->
-    case emq_auth_pgsql_cli:equery(AuthSql, AuthParams, Client) of
+    case emqx_auth_pgsql_cli:equery(AuthSql, AuthParams, Client) of
         {ok, _, [Record]} ->
             case check_pass(Record, Password, HashType) of
                 ok -> {ok, is_superuser(SuperQuery, Client)};
@@ -68,7 +68,7 @@ check_pass(PassHash, PassHash) -> ok;
 check_pass(_, _)               -> {error, password_error}. 
 
 hash(Type, Password) ->
-    emqttd_auth_mod:passwd_hash(Type, Password).
+    emqx_auth_mod:passwd_hash(Type, Password).
 
 description() -> "Authentication with PostgreSQL".
 
@@ -80,7 +80,7 @@ description() -> "Authentication with PostgreSQL".
 is_superuser(undefined, _Client) ->
     false;
 is_superuser({SuperSql, Params}, Client) ->
-    case emq_auth_pgsql_cli:equery(SuperSql, Params, Client) of
+    case emqx_auth_pgsql_cli:equery(SuperSql, Params, Client) of
         {ok, [_Super], [{true}]} ->
             true;
         {ok, [_Super], [_False]} ->

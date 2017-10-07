@@ -14,13 +14,13 @@
 %% limitations under the License.
 %%--------------------------------------------------------------------
 
--module(emq_auth_pgsql_cli).
+-module(emqx_auth_pgsql_cli).
 
 -behaviour(ecpool_worker).
 
--include("emq_auth_pgsql.hrl").
+-include("emqx_auth_pgsql.hrl").
 
--include_lib("emqttd/include/emqttd.hrl").
+-include_lib("emqx/include/emqx.hrl").
 
 -import(proplists, [get_value/2]).
 

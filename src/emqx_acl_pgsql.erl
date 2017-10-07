@@ -14,11 +14,11 @@
 %% limitations under the License.
 %%--------------------------------------------------------------------
 
--module(emq_acl_pgsql).
+-module(emqx_acl_pgsql).
 
--behaviour(emqttd_acl_mod).
+-behaviour(emqx_acl_mod).
 
--include_lib("emqttd/include/emqttd.hrl").
+-include_lib("emqx/include/emqx.hrl").
 
 %% ACL callbacks
 -export([init/1, check_acl/2, reload_acl/1, description/0]).
@@ -32,7 +32,7 @@ check_acl({#mqtt_client{username = <<$$, _/binary>>}, _PubSub, _Topic}, _State) 
     ignore;
 
 check_acl({Client, PubSub, Topic}, #state{acl_query   = {AclSql, AclParams}}) ->
-    case emq_auth_pgsql_cli:equery(AclSql, AclParams, Client) of
+    case emqx_auth_pgsql_cli:equery(AclSql, AclParams, Client) of
         {ok, _, []} ->
             ignore;
         {ok, _, Rows} ->
@@ -50,7 +50,7 @@ match(_Client, _Topic, []) ->
     nomatch;
 
 match(Client, Topic, [Rule|Rules]) ->
-    case emqttd_access_rule:match(Client, Topic, Rule) of
+    case emqx_access_rule:match(Client, Topic, Rule) of
         nomatch -> match(Client, Topic, Rules);
         {matched, AllowDeny} -> {matched, AllowDeny}
     end.
@@ -65,7 +65,7 @@ compile([], Acc) ->
 compile([{Allow, IpAddr, Username, ClientId, Access, Topic}|T], Acc) ->
     Who  = who(IpAddr, Username, ClientId),
     Term = {allow(Allow), Who, access(Access), [topic(Topic)]},
-    compile(T, [emqttd_access_rule:compile(Term) | Acc]).
+    compile(T, [emqx_access_rule:compile(Term) | Acc]).
 
 who(_, <<"$all">>, _) ->
     all;

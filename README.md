@@ -1,6 +1,6 @@
 
-emq_auth_pgsql
-==============
+emqx_auth_pgsql
+===============
 
 Authentication/ACL with PostgreSQL Database.
 
@@ -12,7 +12,7 @@ make && make tests
 Configuration
 -------------
 
-File: etc/emq_auth_pgsql.conf
+File: etc/emqx_auth_pgsql.conf
 
 ```
 ## Postgre Server
@@ -67,7 +67,7 @@ auth.pgsql.acl_query = select allow, ipaddr, username, clientid, access, topic f
 Load Plugin
 -----------
 
-./bin/emqttd_ctl plugins load emq_auth_pgsql
+./bin/emqx_ctl plugins load emqx_auth_pgsql
 
 Auth Table
 ----------
@@ -118,5 +118,5 @@ Apache License Version 2.0
 Author
 ------
 
-Feng Lee <feng@emqtt.io>
+EMQ X-Men Team.
 

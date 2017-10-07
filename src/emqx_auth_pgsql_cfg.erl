@@ -14,11 +14,11 @@
 %% limitations under the License.
 %%--------------------------------------------------------------------
 
--module (emq_auth_pgsql_config).
+-module(emqx_auth_pgsql_cfg).
 
--include("emq_auth_pgsql.hrl").
+-include("emqx_auth_pgsql.hrl").
 
--export ([register/0, unregister/0]).
+-export([register/0, unregister/0]).
 
 %%--------------------------------------------------------------------
 %% API

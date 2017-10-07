@@ -1,53 +1,53 @@
 %%-*- mode: erlang -*-
-%% emq_auth_pgsl config mapping
+%% emqx_auth_pgsl config mapping
 
-{mapping, "auth.pgsql.server", "emq_auth_pgsql.server", [
+{mapping, "auth.pgsql.server", "emqx_auth_pgsql.server", [
   {default, {"127.0.0.1", 5432}},
   {datatype, [integer, ip, string]}
 ]}.
 
-{mapping, "auth.pgsql.pool", "emq_auth_pgsql.server", [
+{mapping, "auth.pgsql.pool", "emqx_auth_pgsql.server", [
   {default, 8},
   {datatype, integer}
 ]}.
 
-{mapping, "auth.pgsql.database", "emq_auth_pgsql.server", [
+{mapping, "auth.pgsql.database", "emqx_auth_pgsql.server", [
   {datatype, string}
 ]}.
 
-{mapping, "auth.pgsql.username", "emq_auth_pgsql.server", [
+{mapping, "auth.pgsql.username", "emqx_auth_pgsql.server", [
   {default, ""},
   {datatype, string}
 ]}.
 
-{mapping, "auth.pgsql.password", "emq_auth_pgsql.server", [
+{mapping, "auth.pgsql.password", "emqx_auth_pgsql.server", [
   {default, ""},
   {datatype, string}
 ]}.
 
-{mapping, "auth.pgsql.encoding", "emq_auth_pgsql.server", [
+{mapping, "auth.pgsql.encoding", "emqx_auth_pgsql.server", [
   {default, utf8},
   {datatype, atom}
 ]}.
 
-{mapping, "auth.pgsql.ssl", "emq_auth_pgsql.server", [
+{mapping, "auth.pgsql.ssl", "emqx_auth_pgsql.server", [
   {default, false},
   {datatype, {enum, [true, false]}}
 ]}.
 
-{mapping, "auth.pgsql.ssl_opts.keyfile", "emq_auth_pgsql.server", [
+{mapping, "auth.pgsql.ssl_opts.keyfile", "emqx_auth_pgsql.server", [
   {datatype, string}
 ]}.
 
-{mapping, "auth.pgsql.ssl_opts.certfile", "emq_auth_pgsql.server", [
+{mapping, "auth.pgsql.ssl_opts.certfile", "emqx_auth_pgsql.server", [
   {datatype, string}
 ]}.
 
-{mapping, "auth.pgsql.ssl_opts.cacertfile", "emq_auth_pgsql.server", [
+{mapping, "auth.pgsql.ssl_opts.cacertfile", "emqx_auth_pgsql.server", [
   {datatype, string}
 ]}.
 
-{translation, "emq_auth_pgsql.server", fun(Conf) ->
+{translation, "emqx_auth_pgsql.server", fun(Conf) ->
   {PgHost, PgPort} =
   case cuttlefish:conf_get("auth.pgsql.server", Conf) of
     {Ip, Port} -> {Ip, Port};
@@ -81,35 +81,35 @@
    {ssl_opts, SslOpts("auth.pgsql.ssl_opts")}]
 end}.
 
-{mapping, "auth.pgsql.auth_query", "emq_auth_pgsql.auth_query", [
+{mapping, "auth.pgsql.auth_query", "emqx_auth_pgsql.auth_query", [
   {datatype, string}
 ]}.
 
-{mapping, "auth.pgsql.password_hash", "emq_auth_pgsql.password_hash", [
+{mapping, "auth.pgsql.password_hash", "emqx_auth_pgsql.password_hash", [
   {datatype, string}
 ]}.
 
-{mapping, "auth.pgsql.pbkdf2_macfun", "emq_auth_pgsql.pbkdf2_macfun", [
+{mapping, "auth.pgsql.pbkdf2_macfun", "emqx_auth_pgsql.pbkdf2_macfun", [
   {datatype, atom}
 ]}.
 
-{mapping, "auth.pgsql.pbkdf2_iterations", "emq_auth_pgsql.pbkdf2_iterations", [
+{mapping, "auth.pgsql.pbkdf2_iterations", "emqx_auth_pgsql.pbkdf2_iterations", [
   {datatype, integer}
 ]}.
 
-{mapping, "auth.pgsql.pbkdf2_dklen", "emq_auth_pgsql.pbkdf2_dklen", [
+{mapping, "auth.pgsql.pbkdf2_dklen", "emqx_auth_pgsql.pbkdf2_dklen", [
   {datatype, integer}
 ]}.
 
-{mapping, "auth.pgsql.super_query", "emq_auth_pgsql.super_query", [
+{mapping, "auth.pgsql.super_query", "emqx_auth_pgsql.super_query", [
   {datatype, string}
 ]}.
 
-{mapping, "auth.pgsql.acl_query", "emq_auth_pgsql.acl_query", [
+{mapping, "auth.pgsql.acl_query", "emqx_auth_pgsql.acl_query", [
   {datatype, string}
 ]}.
 
-{translation, "emq_auth_pgsql.password_hash", fun(Conf) ->
+{translation, "emqx_auth_pgsql.password_hash", fun(Conf) ->
   HashValue = cuttlefish:conf_get("auth.pgsql.password_hash", Conf),
   case string:tokens(HashValue, ",") of
     [Hash]           -> list_to_atom(Hash);
