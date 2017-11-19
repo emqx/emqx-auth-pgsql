@@ -1,5 +1,5 @@
 
-emq_auth_pgsql
+emq-auth-pgsql
 ==============
 
 Authentication/ACL with PostgreSQL Database.
@@ -118,5 +118,5 @@ Apache License Version 2.0
 Author
 ------
 
-Feng Lee <feng@emqtt.io>
+EMQ X Team.
 
