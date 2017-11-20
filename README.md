@@ -1,6 +1,6 @@
-
 emqx_auth_pgsql
 ===============
+
 
 Authentication/ACL with PostgreSQL Database.
 
@@ -119,4 +119,3 @@ Author
 ------
 
 EMQ X-Men Team.
-
