@@ -15,33 +15,71 @@ Configuration
 File: etc/emqx_auth_pgsql.conf
 
 ```
-## Postgre Server
+## PostgreSQL server address.
+##
+## Value: Port | IP:Port
+##
+## Examples: 5432, 127.0.0.1:5432, localhost:5432
 auth.pgsql.server = 127.0.0.1:5432
 
+## PostgreSQL pool size.
+##
+## Value: Number
 auth.pgsql.pool = 8
 
+## PostgreSQL username.
+##
+## Value: String
 auth.pgsql.username = root
 
-#auth.pgsql.password = 
+## PostgreSQL password.
+##
+## Value: String
+## auth.pgsql.password =
 
+## PostgreSQL database.
+##
+## Value: String
 auth.pgsql.database = mqtt
 
+## PostgreSQL database encoding.
+##
+## Value: String
 auth.pgsql.encoding = utf8
 
+## Whether to enable SSL connection.
+##
+## Value: true | false
 auth.pgsql.ssl = false
 
-##auth.pgsql.ssl_opts.keyfile =
+## SSL keyfile.
+##
+## Value: File
+## auth.pgsql.ssl_opts.keyfile =
 
-##auth.pgsql.ssl_opts.certfile =
+## SSL certfile.
+##
+## Value: File
+## auth.pgsql.ssl_opts.certfile =
 
-##auth.pgsql.ssl_opts.cacertfile =
+## SSL cacertfile.
+##
+## Value: File
+## auth.pgsql.ssl_opts.cacertfile =
 
-## Variables: %u = username, %c = clientid, %a = ipaddress
-
-## Authentication Query: select password or password, salt
+## Authentication query.
+##
+## Value: SQL
+##
+## Variables:
+##  - %u: username
+##  - %c: clientid
+##
 auth.pgsql.auth_query = select password from mqtt_user where username = '%u' limit 1
 
-## Password hash: plain, md5, sha, sha256, bcrypt
+## Password hash.
+##
+## Value: plain | md5 | sha | sha256 | bcrypt
 auth.pgsql.password_hash = sha256
 
 ## sha256 with salt prefix
@@ -57,10 +95,23 @@ auth.pgsql.password_hash = sha256
 ## macfun: md4, md5, ripemd160, sha, sha224, sha256, sha384, sha512
 ## auth.pgsql.password_hash = pbkdf2,sha256,1000,20
 
-## Superuser Query
+## Superuser query.
+##
+## Value: SQL
+##
+## Variables:
+##  - %u: username
+##  - %c: clientid
 auth.pgsql.super_query = select is_superuser from mqtt_user where username = '%u' limit 1
 
-## ACL Query. Comment this query, the acl will be disabled.
+## ACL query. Comment this query, the ACL will be disabled.
+##
+## Value: SQL
+##
+## Variables:
+##  - %a: ipaddress
+##  - %u: username
+##  - %c: clientid
 auth.pgsql.acl_query = select allow, ipaddr, username, clientid, access, topic from mqtt_acl where ipaddr = '%a' or username = '%u' or username = '$all' or clientid = '%c'
 ```
 
