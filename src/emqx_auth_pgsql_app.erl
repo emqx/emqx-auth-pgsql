@@ -32,20 +32,16 @@
 start(_StartType, _StartArgs) ->
     {ok, Sup} = emqx_auth_pgsql_sup:start_link(),
     if_enabled(auth_query, fun(AuthQuery) ->
-        SuperQuery = parse_query(application:get_env(?APP, super_query, undefined)),
         {ok, HashType}  = application:get_env(?APP, password_hash),
-        AuthEnv = {AuthQuery, SuperQuery, HashType},
-        ok = emqx_access_control:register_mod(auth, emqx_auth_pgsql, AuthEnv)
-    end),
-    if_enabled(acl_query, fun(AclQuery) ->
-        ok = emqx_access_control:register_mod(acl, emqx_acl_pgsql, AclQuery)
+        AuthEnv = {AuthQuery, HashType},
+        emqx:hook('client.auth', fun emqx_auth_pgsql:check/3, [AuthEnv])
     end),
     emqx_auth_pgsql_cfg:register(),
     {ok, Sup}.
 
 stop(_State) ->
     emqx_access_control:unregister_mod(acl, emqx_acl_pgsql),
-    emqx_access_control:unregister_mod(auth, emqx_auth_pgsql),
+    emqx:unhook('client.auth', fun emqx_auth_pgsql:check/3),
     emqx_auth_pgsql_cfg:unregister().
 
 if_enabled(Par, Fun) ->

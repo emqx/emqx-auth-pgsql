@@ -16,41 +16,39 @@
 
 -module(emqx_auth_pgsql).
 
--behaviour(emqx_auth_mod).
-
 -include("emqx_auth_pgsql.hrl").
 
 -include_lib("emqx/include/emqx.hrl").
 
--export([init/1, check/3, description/0]).
+-export([check/3]).
 
--record(state, {auth_query, super_query, hash_type}).
+check(undefined, Client = #mqtt_client{username = Username} , Params) ->
+    lager:error("Username '~s' login failed for ~p", [Username, username_or_password_undefined]),
+    {stop, Client};
 
--define(UNDEFINED(S), (S =:= undefined orelse S =:= <<>>)).
-
-%%--------------------------------------------------------------------
-%% Auth Module Callbacks
-%%--------------------------------------------------------------------
-
-init({AuthQuery, SuperQuery, HashType}) ->
-    {ok, #state{auth_query = AuthQuery, super_query = SuperQuery, hash_type = HashType}}.
-
-check(#mqtt_client{username = Username}, Password, _State) when ?UNDEFINED(Username); ?UNDEFINED(Password) ->
-    {error, username_or_password_undefined};
-
-check(Client, Password, #state{auth_query  = {AuthSql, AuthParams},
-                               super_query = SuperQuery,
-                               hash_type   = HashType}) ->
+check(Password, Client = #mqtt_client{headers = Headers, username = Username, client_id = ClientId} , {{AuthSql, AuthParams}, HashType}) ->
     case emqx_auth_pgsql_cli:equery(AuthSql, AuthParams, Client) of
-        {ok, _, [Record]} ->
-            case check_pass(Record, Password, HashType) of
-                ok -> {ok, is_superuser(SuperQuery, Client)};
-                Error -> Error
+        {ok, _, [{TenantId, ProductId, DeviceID, Token, 3}]} ->
+            lager:error("Username '~s' login failed for black list", [Username]),
+            {stop, Client};
+        {ok, _, [{TenantId, ProductId, DeviceID, Token, Status}]} ->
+            case check_pass({Token}, Password, HashType) of
+                ok ->
+                    Headers1 = [{tenant_id, TenantId},
+                                {product_id, ProductId},
+                                {device_id, DeviceID},
+                                {is_superuser, false} | Headers],
+                    {ok, Client#mqtt_client{headers = Headers1, client_id = undefined}};
+                Error ->
+                    lager:error("Username '~s' login failed for ~p", [Username, Error]),
+                    {stop, Client}
             end;
          {ok, _, []} ->
-            ignore;
+            lager:error("Username '~s' login failed for ~p", [Username, not_find]),
+            {stop, Client};
          {error, Reason} ->
-            {error, Reason}
+            lager:error("Username '~s' login failed for ~p", [Username, Reason]),
+            {stop, Client}
      end.
 
 check_pass({PassHash}, Password, HashType) ->
@@ -69,25 +67,3 @@ check_pass(_, _)               -> {error, password_error}.
 
 hash(Type, Password) ->
     emqx_auth_mod:passwd_hash(Type, Password).
-
-description() -> "Authentication with PostgreSQL".
-
-%%--------------------------------------------------------------------
-%% Is Superuser?
-%%--------------------------------------------------------------------
-
--spec(is_superuser(undefined | {string(), list()}, mqtt_client()) -> boolean()).
-is_superuser(undefined, _Client) ->
-    false;
-is_superuser({SuperSql, Params}, Client) ->
-    case emqx_auth_pgsql_cli:equery(SuperSql, Params, Client) of
-        {ok, [_Super], [{true}]} ->
-            true;
-        {ok, [_Super], [_False]} ->
-            false;
-        {ok, [_Super], []} ->
-            false;
-        {error, _Error} ->
-            false
-    end.
-
