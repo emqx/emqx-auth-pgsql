@@ -27,28 +27,30 @@ check(undefined, Client = #mqtt_client{username = Username} , Params) ->
     {stop, Client};
 
 check(Password, Client = #mqtt_client{headers = Headers, username = Username, client_id = ClientId} , {{AuthSql, AuthParams}, HashType}) ->
+    lager:debug("Sql:~p, params:~p", [AuthSql, AuthParams]),
     case emqx_auth_pgsql_cli:equery(AuthSql, AuthParams, Client) of
-        {ok, _, [{TenantId, ProductId, DeviceID, Token, 3}]} ->
+        {ok, _, [{TenantId, ProductId, DeviceId, Token, 3}]} ->
             lager:error("Username '~s' login failed for black list", [Username]),
             {stop, Client};
-        {ok, _, [{TenantId, ProductId, DeviceID, Token, Status}]} ->
+        {ok, _, [{TenantId, ProductId, DeviceId, Token, Status}]} ->
             case check_pass({Token}, Password, HashType) of
                 ok ->
                     Headers1 = [{tenant_id, TenantId},
                                 {product_id, ProductId},
-                                {device_id, DeviceID},
+                                {device_id, DeviceId},
                                 {is_superuser, false} | Headers],
-                    {ok, Client#mqtt_client{headers = Headers1, client_id = undefined}};
+                    ClientId2 = <<TenantId/binary, ":", ProductId/binary, ":", DeviceId/binary>>,
+                    {ok, Client#mqtt_client{headers = Headers1, client_id = ClientId2}};
                 Error ->
                     lager:error("Username '~s' login failed for ~p", [Username, Error]),
                     {stop, Client}
             end;
          {ok, _, []} ->
             lager:error("Username '~s' login failed for ~p", [Username, not_find]),
-            {stop, Client};
+            stop;
          {error, Reason} ->
             lager:error("Username '~s' login failed for ~p", [Username, Reason]),
-            {stop, Client}
+            stop
      end.
 
 check_pass({PassHash}, Password, HashType) ->
