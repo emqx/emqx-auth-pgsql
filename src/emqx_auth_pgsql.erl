@@ -29,7 +29,7 @@ check(undefined, Client = #mqtt_client{username = Username} , Params) ->
 check(Password, Client = #mqtt_client{headers = Headers, username = Username, client_id = ClientId} , {{AuthSql, AuthParams}, HashType}) ->
     lager:debug("Sql:~p, params:~p", [AuthSql, AuthParams]),
     case emqx_auth_pgsql_cli:equery(AuthSql, AuthParams, Client) of
-        {ok, _, [{TenantId, ProductId, DeviceId, Token, 3}]} ->
+        {ok, _, [{TenantId, ProductId, DeviceId, Token, 1}]} ->
             lager:error("Username '~s' login failed for black list", [Username]),
             {stop, Client};
         {ok, _, [{TenantId, ProductId, DeviceId, Token, Status}]} ->
