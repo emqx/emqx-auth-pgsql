@@ -36,6 +36,10 @@ start(_StartType, _StartArgs) ->
         AuthEnv = {AuthQuery, HashType},
         emqx:hook('client.auth', fun emqx_auth_pgsql:check/3, [AuthEnv])
     end),
+
+    if_enabled(acl_query, fun(AclQuery) ->
+        ok = emqx_access_control:register_mod(acl, emqx_acl_pgsql, AclQuery)
+    end),
     emqx_auth_pgsql_cfg:register(),
     {ok, Sup}.
 
