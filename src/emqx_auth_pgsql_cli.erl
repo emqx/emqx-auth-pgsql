@@ -75,12 +75,15 @@ conn_opts([_Opt|Opts], Acc) ->
     conn_opts(Opts, Acc).
 
 squery(Sql) ->
+    lager:debug("Sql:~p", [Sql]),
     ecpool:with_client(?APP, fun(C) -> epgsql:squery(C, Sql) end).
 
 equery(Sql, Params) ->
+    lager:debug("Sql:~p, Params:~p", [Sql, Params]),
     ecpool:with_client(?APP, fun(C) -> epgsql:equery(C, Sql, Params) end).
 
 equery(Sql, Params, Client) ->
+    lager:debug("Sql:~p, Params:~p", [Sql, replvar(Params, Client)]),
     ecpool:with_client(?APP, fun(C) -> epgsql:equery(C, Sql, replvar(Params, Client)) end).
 
 replvar(Params, Client) ->

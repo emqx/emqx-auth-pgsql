@@ -22,10 +22,6 @@
 
 -export([check/3]).
 
-check(undefined, Client = #mqtt_client{username = Username} , _Params) ->
-    lager:error("Username '~s' login failed for ~p", [Username, username_or_password_undefined]),
-    {stop, Client};
-
 check(Password, Client = #mqtt_client{headers = Headers, username = Username} , {{AuthSql, AuthParams}, HashType}) ->
     lager:debug("Sql:~p, params:~p", [AuthSql, AuthParams]),
     case emqx_auth_pgsql_cli:equery(AuthSql, AuthParams, Client) of
@@ -33,41 +29,41 @@ check(Password, Client = #mqtt_client{headers = Headers, username = Username} , 
             lager:error("Username '~s' login failed for black list", [Username]),
             {stop, Client};
         {ok, _, [{TenantId, ProductId, DeviceId, Username, Token, _Status, 1}]} ->
+            Headers1 = [{tenant_id, TenantId},
+                        {product_id, ProductId},
+                        {device_id, DeviceId},
+                        {is_superuser, false} | Headers],
             case check_pass({Token}, Password, HashType) of
                 ok ->
-                    Headers1 = [{tenant_id, TenantId},
-                                {product_id, ProductId},
-                                {device_id, DeviceId},
-                                {is_superuser, false} | Headers],
                     ClientId2 = <<TenantId/binary, ":", ProductId/binary, ":", DeviceId/binary>>,
                     {ok, Client#mqtt_client{headers = Headers1, client_id = ClientId2}};
                 Error ->
                     lager:error("Username '~s' login failed for ~p", [Username, Error]),
-                    {stop, Client}
+                    {stop, Client#mqtt_client{headers = Headers1}}
             end;
         {ok, _, [{TenantId, ProductId, DeviceId, _DeviceUsername, _Token, _Status, 2}]} ->
+            Headers2 = [{tenant_id, TenantId},
+                        {product_id, ProductId},
+                        {device_id, DeviceId},
+                        {is_superuser, false} | Headers],
             ClientId3 = <<TenantId/binary, ":", ProductId/binary, ":", DeviceId/binary>>,
             Sql = "select id from cert_auth where \"clientID\" = $1 and \"CN\" = $2 limit 1",
             case emqx_auth_pgsql_cli:equery(Sql, [ClientId3, Username]) of
                 {ok, _, [_Id]} ->
-                    Headers2 = [{tenant_id, TenantId},
-                                {product_id, ProductId},
-                                {device_id, DeviceId},
-                                {is_superuser, false} | Headers],
                     {ok, Client#mqtt_client{headers = Headers2, client_id = ClientId3}};
                 {ok, _, []} ->
                     lager:error("Username '~s' login failed for ~p", [Username, not_find]),
-                    stop;
+                    {stop, Client#mqtt_client{headers = Headers2}};
                 {error, Reason1} ->
                     lager:error("Username '~s' login failed for ~p", [Username, Reason1]),
-                    stop
+                    {stop, Client}
             end;
          {ok, _, []} ->
             lager:error("Username '~s' login failed for ~p", [Username, not_find]),
-            stop;
+            {stop, Client};
          {error, Reason} ->
             lager:error("Username '~s' login failed for ~p", [Username, Reason]),
-            stop
+            {stop, Client}
      end.
 
 check_pass({PassHash}, Password, HashType) ->
