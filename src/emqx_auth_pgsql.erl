@@ -41,6 +41,12 @@ check(Password, Client = #mqtt_client{headers = Headers, username = Username} , 
                     lager:error("Username '~s' login failed for ~p", [Username, Error]),
                     {stop, Client#mqtt_client{headers = Headers1}}
             end;
+        {ok, _, [{TenantId, ProductId, DeviceId, _, Token, _Status, 1}]} ->
+            Headers3 = [{tenant_id, TenantId},
+                        {product_id, ProductId},
+                        {device_id, DeviceId},
+                        {is_superuser, false} | Headers],
+            {stop, Client#mqtt_client{headers = Headers3}};
         {ok, _, [{TenantId, ProductId, DeviceId, _DeviceUsername, _Token, _Status, 2}]} ->
             Headers2 = [{tenant_id, TenantId},
                         {product_id, ProductId},
