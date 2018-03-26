@@ -53,7 +53,7 @@ check(Password, Client = #mqtt_client{headers = Headers, username = Username} , 
                         {device_id, DeviceId},
                         {is_superuser, false} | Headers],
             ClientId3 = <<TenantId/binary, ":", ProductId/binary, ":", DeviceId/binary>>,
-            Sql = "select id from cert_auth where \"clientID\" = $1 and \"CN\" = $2 limit 1",
+            Sql = "select id from cert_auth where \"clientID\" = $1 and \"CN\" = $2 and enable = 1 limit 1",
             case emqx_auth_pgsql_cli:equery(Sql, [ClientId3, Username]) of
                 {ok, _, [_Id]} ->
                     {ok, Client#mqtt_client{headers = Headers2, client_id = ClientId3}};
