@@ -23,17 +23,12 @@
 -import(emqx_auth_pgsql_cli, [parse_query/1]).
 
 %% emqx_services callbacks
--export([init/0, create/1, description/0, destroy/0]).
+-export([init/1, create/2, destroy/0, description/0]).
 
 
-init() -> ok.
+init(_Env) -> ok.
 
-destroy() ->
-    emqx_access_control:unregister_mod(acl, emqx_acl_pgsql),
-    emqx_access_control:unregister_mod(auth, emqx_auth_pgsql),
-    emqx_auth_pgsql_cfg:unregister().
-
-create(Conf) ->
+create(Conf, _Env) ->
     lager:debug("create instance ~p", [Conf]),
     %% TODO: register Hooks, establish connection
     AuthQuery = parse_query(value(auth_query, Conf)),
@@ -50,8 +45,15 @@ create(Conf) ->
 
     %% Establish connections
     %% XXX: Need huang to main superviser
-    PoolSpec = ecpool:pool_spec(?APP, ?APP, emqx_auth_pgsql_cli, Conf),
+    PoolSpec = ecpool:pool_spec(?APP, ?APP, emqx_auth_pgsql_cli, value(server, Conf)),
     supervisor:start_child(emqx_auth_pgsql_sup, PoolSpec),
+    ok.
+
+destroy() ->
+    emqx_access_control:unregister_mod(acl, emqx_acl_pgsql),
+    emqx_access_control:unregister_mod(auth, emqx_auth_pgsql),
+    emqx_auth_pgsql_cfg:unregister(),
+    supervisor:terminate_child(emqx_auth_pgsql_sup, ?APP),
     ok.
 
 description() -> "Auth/ACL for PostgreSQL".

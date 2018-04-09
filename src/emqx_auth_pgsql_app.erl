@@ -51,7 +51,7 @@ start(_StartType, _StartArgs) ->
               [{key, password_hash}, {default, [sha256, plain, md5, sha, bcrypt]}, {required, false}, {descr, <<"Desc">>}],
               [{key, super_query}, {default, ["select is_superuser from mqtt_user where username = '%u' limit 1"]}, {required, false}, {descr, <<"Desc">>}],
               [{key, acl_query}, {default, ["select allow, ipaddr, username, clientid, access, topic from mqtt_acl where ipaddr = '%a' or username = '%u' or username = '$all' or clientid = '%c'"]}, {required, false}, {descr, <<"Desc">>}]],
-    ok = emqx_services:register(emqx_auth_pgsql_ins, auth, Schema),
+    ok = emqx_services:register(emqx_auth_pgsql_ins, ?APP, auth, []),
 
     {ok, Sup}.
 
