@@ -1,6 +1,6 @@
 PROJECT = emqx_auth_pgsql
 PROJECT_DESCRIPTION = EMQ X Authentication/ACL with PostgreSQL
-PROJECT_VERSION = 2.4.1
+PROJECT_VERSION = 2.4.2
 
 DEPS = epgsql ecpool clique
 
