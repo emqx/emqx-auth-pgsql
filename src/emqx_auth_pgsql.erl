@@ -25,12 +25,13 @@
 check(Password, Client = #mqtt_client{headers = Headers, username = Username} , {{AuthSql, AuthParams}, HashType}) ->
     lager:debug("Sql:~p, params:~p", [AuthSql, AuthParams]),
     case emqx_auth_pgsql_cli:equery(AuthSql, AuthParams, Client) of
-        {ok, _, [{_TenantId, _ProductId, _DeviceId, _DeviceUsername, _Token, 1, _}]} ->
+        {ok, _, [{_TenantId, _ProductId, _GroupId, _DeviceId, _DeviceUsername, _Token, 1, _}]} ->
             lager:error("Username '~s' login failed for black list", [Username]),
             {stop, Client};
-        {ok, _, [{TenantId, ProductId, DeviceId, Username, Token, _Status, 1}]} ->
+        {ok, _, [{TenantId, ProductId, GroupId, DeviceId, Username, Token, _Status, 1}]} ->
             Headers1 = [{tenant_id, TenantId},
                         {product_id, ProductId},
+                        {group_id, GroupId},
                         {device_id, DeviceId},
                         {is_superuser, false} | Headers],
             case check_pass({Token}, Password, HashType) of
@@ -41,15 +42,17 @@ check(Password, Client = #mqtt_client{headers = Headers, username = Username} , 
                     lager:error("Username '~s' login failed for ~p", [Username, Error]),
                     {stop, Client#mqtt_client{headers = Headers1}}
             end;
-        {ok, _, [{TenantId, ProductId, DeviceId, _, Token, _Status, 1}]} ->
+        {ok, _, [{TenantId, ProductId, GroupId, DeviceId, _, Token, _Status, 1}]} ->
             Headers3 = [{tenant_id, TenantId},
                         {product_id, ProductId},
+                        {group_id, GroupId},
                         {device_id, DeviceId},
                         {is_superuser, false} | Headers],
             {stop, Client#mqtt_client{headers = Headers3}};
-        {ok, _, [{TenantId, ProductId, DeviceId, _DeviceUsername, _Token, _Status, 2}]} ->
+        {ok, _, [{TenantId, ProductId, GroupId, DeviceId, _DeviceUsername, _Token, _Status, 2}]} ->
             Headers2 = [{tenant_id, TenantId},
                         {product_id, ProductId},
+                        {group_id, GroupId},
                         {device_id, DeviceId},
                         {is_superuser, false} | Headers],
             ClientId3 = <<TenantId/binary, ":", ProductId/binary, ":", DeviceId/binary>>,
