@@ -20,9 +20,22 @@
 
 -include_lib("emqx/include/emqx.hrl").
 
--export([check/3]).
+-export([check/4]).
 
-check(Password, Client = #mqtt_client{headers = Headers, username = Username} , {{AuthSql, AuthParams}, HashType}) ->
+check(lwm2m, _Password, Client = #mqtt_client{client_id = ClientId}, _Env) ->
+    Headers = [{lwm2m_up_ad_topic, {<<"v1/up/ad">>, 0}},
+               {lwm2m_up_dm_topic, {<<"v1/up/dm">>, 0}},
+               {lwm2m_up_ol_topic, {<<"v1/up/ol">>, 0}},
+               {lwm2m_dn_dm_topic, {<<"v1/dn/dm">>, 0}},
+               {lwm2m_model, psm},
+               {lwm2m_auto_observe,  true},
+               {device_id, <<"aaaaaa">>},
+               {tenant_id, <<"aaa">>},
+               {product_id, <<"aa">>},
+               {device_id, <<"aaaa">>}],
+    {ok, Client#mqtt_client{headers = Headers}};
+
+check(mqtt, Password, Client = #mqtt_client{headers = Headers, username = Username} , {{AuthSql, AuthParams}, HashType}) ->
     lager:debug("Sql:~p, params:~p", [AuthSql, AuthParams]),
     case emqx_auth_pgsql_cli:equery(AuthSql, AuthParams, Client) of
         {ok, _, [{_TenantId, _ProductId, _GroupId, _DeviceId, _DeviceUsername, _Token, 1, _}]} ->

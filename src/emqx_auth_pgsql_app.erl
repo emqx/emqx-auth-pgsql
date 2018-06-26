@@ -34,7 +34,7 @@ start(_StartType, _StartArgs) ->
     if_enabled(auth_query, fun(AuthQuery) ->
         {ok, HashType}  = application:get_env(?APP, password_hash),
         AuthEnv = {AuthQuery, HashType},
-        emqx:hook('client.auth', fun emqx_auth_pgsql:check/3, [AuthEnv])
+        emqx:hook('client.auth', fun emqx_auth_pgsql:check/4, [AuthEnv])
     end),
 
     if_enabled(acl_query, fun(AclQuery) ->
@@ -45,7 +45,7 @@ start(_StartType, _StartArgs) ->
 
 stop(_State) ->
     emqx_access_control:unregister_mod(acl, emqx_acl_pgsql),
-    emqx:unhook('client.auth', fun emqx_auth_pgsql:check/3),
+    emqx:unhook('client.auth', fun emqx_auth_pgsql:check/4),
     emqx_auth_pgsql_cfg:unregister().
 
 if_enabled(Par, Fun) ->
