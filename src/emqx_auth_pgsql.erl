@@ -42,40 +42,30 @@ check(mqtt, Password, Client = #mqtt_client{headers = Headers, username = Userna
             lager:error("Username '~s' login failed for black list", [Username]),
             {stop, Client};
         {ok, _, [{TenantId, ProductId, GroupId, DeviceId, Username, Token, _Status, 1}]} ->
-            Headers1 = [{tenant_id, TenantId},
-                        {product_id, ProductId},
-                        {group_id, GroupId},
-                        {device_id, DeviceId},
-                        {is_superuser, false} | Headers],
+            Headers1 = mqtt_headers(TenantId, ProductId, GroupId, DeviceId, Headers),
+            Mountpoint = mountpoint(<<"mqtt">>, TenantId, ProductId, DeviceId),
             case check_pass({Token}, Password, HashType) of
                 ok ->
                     ClientId2 = <<TenantId/binary, ":", ProductId/binary, ":", DeviceId/binary>>,
-                    {ok, Client#mqtt_client{headers = Headers1, client_id = ClientId2}};
+                    {ok, Client#mqtt_client{headers = Headers1, client_id = ClientId2, mountpoint = Mountpoint}};
                 Error ->
                     lager:error("Username '~s' login failed for ~p", [Username, Error]),
                     {stop, Client#mqtt_client{headers = Headers1}}
             end;
         {ok, _, [{TenantId, ProductId, GroupId, DeviceId, _, Token, _Status, 1}]} ->
-            Headers3 = [{tenant_id, TenantId},
-                        {product_id, ProductId},
-                        {group_id, GroupId},
-                        {device_id, DeviceId},
-                        {is_superuser, false} | Headers],
-            {stop, Client#mqtt_client{headers = Headers3}};
+            Headers2 = mqtt_headers(TenantId, ProductId, GroupId, DeviceId, Headers),
+            {stop, Client#mqtt_client{headers = Headers2}};
         {ok, _, [{TenantId, ProductId, GroupId, DeviceId, _DeviceUsername, _Token, _Status, 2}]} ->
-            Headers2 = [{tenant_id, TenantId},
-                        {product_id, ProductId},
-                        {group_id, GroupId},
-                        {device_id, DeviceId},
-                        {is_superuser, false} | Headers],
+            Headers3 = mqtt_headers(TenantId, ProductId, GroupId, DeviceId, Headers),
+            Mountpoint = mountpoint(<<"mqtt">>, TenantId, ProductId, DeviceId),
             ClientId3 = <<TenantId/binary, ":", ProductId/binary, ":", DeviceId/binary>>,
             Sql = "select id from cert_auth where \"clientID\" = $1 and \"CN\" = $2 and enable = 1 limit 1",
             case emqx_auth_pgsql_cli:equery(Sql, [ClientId3, Username]) of
                 {ok, _, [_Id]} ->
-                    {ok, Client#mqtt_client{headers = Headers2, client_id = ClientId3}};
+                    {ok, Client#mqtt_client{headers = Headers3, client_id = ClientId3, mountpoint = Mountpoint}};
                 {ok, _, []} ->
                     lager:error("Username '~s' login failed for ~p", [Username, not_find]),
-                    {stop, Client#mqtt_client{headers = Headers2}};
+                    {stop, Client#mqtt_client{headers = Headers3}};
                 {error, Reason1} ->
                     lager:error("Username '~s' login failed for ~p", [Username, Reason1]),
                     {stop, Client}
@@ -104,3 +94,13 @@ check_pass(_, _)               -> {error, password_error}.
 
 hash(Type, Password) ->
     emqx_auth_mod:passwd_hash(Type, Password).
+
+mqtt_headers(TenantId, ProductId, GroupId, DeviceId, Headers) ->
+    [{tenant_id, TenantId},
+     {product_id, ProductId},
+     {group_id, GroupId},
+     {device_id, DeviceId},
+     {is_superuser, false} | Headers].
+
+mountpoint(Protocol, TenantId, ProductId, DeviceId) ->
+    emqx_topic:encode(<<>>, [Protocol, TenantId, ProductId, DeviceId]).
