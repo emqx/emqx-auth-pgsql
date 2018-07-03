@@ -23,17 +23,31 @@
 -export([check/4]).
 
 check(lwm2m, _Password, Client = #mqtt_client{client_id = ClientId}, _Env) ->
-    Headers = [{lwm2m_up_ad_topic, {<<"v1/up/ad">>, 0}},
-               {lwm2m_up_dm_topic, {<<"v1/up/dm">>, 0}},
-               {lwm2m_up_ol_topic, {<<"v1/up/ol">>, 0}},
-               {lwm2m_dn_dm_topic, {<<"v1/dn/dm">>, 0}},
-               {lwm2m_model, psm},
-               {lwm2m_auto_observe,  true},
-               {device_id, <<"aaaaaa">>},
-               {tenant_id, <<"aaa">>},
-               {product_id, <<"aa">>},
-               {device_id, <<"aaaa">>}],
-    {ok, Client#mqtt_client{headers = Headers}};
+    Headers = [{lwm2m_up_ad_topic, {<<"ad">>, 0}},
+               {lwm2m_up_dm_topic, {<<"dm">>, 0}},
+               {lwm2m_up_ol_topic, {<<"ol">>, 0}},
+               {lwm2m_dn_dm_topic, {<<"inbox">>, 0}},
+               {lwm2m_model, psm}],
+    % {ok, Client#mqtt_client{headers = Headers}};
+    AuthSql = "select \"tenantID\", \"productID\", \"deviceID\", \"autoSub\", blocked from devices where \"deviceID\" = $1 limit 1",
+    case emqx_auth_pgsql_cli:equery(AuthSql, [ClientId]) of
+        {ok, _, [{_TenantId, _ProductId, _DeviceId, _AutoSub, 1}]} ->
+            lager:error("ClientId '~s' login failed for black list", [ClientId]),
+            {stop, Client};
+        {ok, _, [{TenantId, ProductId, DeviceId, AutoSub, 0}]} ->
+            Headers2 = Headers ++ [{lwm2m_auto_observe, AutoSub},
+                                   {tenant_id, TenantId},
+                                   {product_id, ProductId},
+                                   {device_id, DeviceId}],
+            Mountpoint = mountpoint(<<"lwm2m">>, TenantId, ProductId, DeviceId),
+            {ok, Client#mqtt_client{headers = Headers2, mountpoint = Mountpoint}};
+        {ok, _, []} ->
+            lager:error("ClientId '~s' login failed for ~p", [ClientId, not_find]),
+            {stop, Client};
+        {error, Reason} ->
+            lager:error("ClientId '~s' login failed for ~p", [ClientId, Reason]),
+            {stop, Client}
+     end;
 
 check(mqtt, Password, Client = #mqtt_client{headers = Headers, username = Username} , {{AuthSql, AuthParams}, HashType}) ->
     lager:debug("Sql:~p, params:~p", [AuthSql, AuthParams]),
