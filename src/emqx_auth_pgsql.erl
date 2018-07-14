@@ -35,7 +35,7 @@ check(lwm2m, _Password, Client = #mqtt_client{client_id = ClientId}, _Env) ->
             lager:error("ClientId '~s' login failed for black list", [ClientId]),
             {stop, Client};
         {ok, _, [{TenantId, ProductId, DeviceId, AutoSub, 0}]} ->
-            Headers2 = Headers ++ [{lwm2m_auto_observe, AutoSub},
+            Headers2 = Headers ++ [{lwm2m_auto_observe, auto_sub(AutoSub)},
                                    {tenant_id, TenantId},
                                    {product_id, ProductId},
                                    {device_id, DeviceId}],
@@ -118,3 +118,6 @@ mqtt_headers(TenantId, ProductId, GroupId, DeviceId, Headers) ->
 
 mountpoint(Protocol, TenantId, ProductId, DeviceId) ->
     emqx_topic:encode(<<>>, [Protocol, TenantId, ProductId, DeviceId]).
+
+auto_sub(0) -> true;
+auto_sub(_) -> false.
