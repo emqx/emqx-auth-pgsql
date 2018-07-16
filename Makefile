@@ -4,22 +4,21 @@ PROJECT_VERSION = 3.0
 
 DEPS = epgsql ecpool clique
 
-dep_epgsql = git https://github.com/epgsql/epgsql master
+dep_epgsql = git https://github.com/epgsql/epgsql 4.1.0
 dep_ecpool = git https://github.com/emqtt/ecpool master
-dep_clique = git https://github.com/emqtt/clique
+dep_clique = git https://github.com/emqx/clique
 
 BUILD_DEPS = emqx cuttlefish
 dep_emqx = git git@github.com:emqtt/emqttd emqx30
-dep_cuttlefish = git https://github.com/emqtt/cuttlefish
+dep_cuttlefish = git https://github.com/emqx/cuttlefish
 
 NO_AUTOPATCH = cuttlefish
 
 ERLC_OPTS += +debug_info
 ERLC_OPTS += +'{parse_transform, lager_transform}'
 
-TEST_DEPS = emqttc emq_auth_username
-dep_emqttc = git https://github.com/emqtt/emqttc
-dep_emqx_auth_username = git https://github.com/emqtt/emq-auth-username X
+TEST_DEPS = emq_auth_username
+dep_emqx_auth_username = git https://github.com/emqx/emqx-auth-username emqx30
 
 TEST_ERLC_OPTS += +debug_info
 TEST_ERLC_OPTS += +'{parse_transform, lager_transform}'

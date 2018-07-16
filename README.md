@@ -1,7 +1,6 @@
 emqx_auth_pgsql
 ===============
 
-
 Authentication/ACL with PostgreSQL Database.
 
 Build Plugin
@@ -132,7 +131,7 @@ CREATE TABLE mqtt_user (
   username character varying(100),
   password character varying(100),
   salt character varying(40)
-) 
+)
 ```
 
 ACL Table
@@ -147,7 +146,7 @@ CREATE TABLE mqtt_acl (
   clientid character varying(100),
   access  integer,
   topic character varying(100)
-) 
+)
 
 INSERT INTO mqtt_acl (id, allow, ipaddr, username, clientid, access, topic)
 VALUES
@@ -169,4 +168,5 @@ Apache License Version 2.0
 Author
 ------
 
-EMQ X-Men Team.
+EMQ X Team.
+

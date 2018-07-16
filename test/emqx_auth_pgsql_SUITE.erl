@@ -1,5 +1,4 @@
-%%--------------------------------------------------------------------
-%% Copyright (c) 2015-2017 Feng Lee <feng@emqtt.io>.
+%% Copyright (c) 2018 EMQ Technologies Co., Ltd. All Rights Reserved.
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -12,7 +11,6 @@
 %% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
-%%--------------------------------------------------------------------
 
 -module(emqx_auth_pgsql_SUITE).
 
@@ -57,7 +55,7 @@
                             salt character varying(40))").
 
 -define(INIT_AUTH, "INSERT INTO mqtt_user (id, is_superuser, username, password, salt)
-                     VALUES  
+                     VALUES
                      (1, true, 'plain', 'plain', 'salt'),
                      (2, false, 'md5', '1bc29b36f623ba82aaf6724fd3b16718', 'salt'),
                      (3, false, 'sha', 'd8f4590320e1343a915b6394170650a8f35d6926', 'salt'),
@@ -68,7 +66,7 @@
 
 all() ->
     [{group, emqx_auth_pgsql_auth},
-     {group, emqx_auth_pgsql_acl}, 
+     {group, emqx_auth_pgsql_acl},
      {group, emqx_auth_pgsql},
      {group, auth_pgsql_config}
     ].
@@ -99,7 +97,7 @@ comment_config(_) ->
     ?assertEqual([], emqx_access_control:lookup_mods(acl)).
 
 check_auth(_) ->
-    init_auth_(), 
+    init_auth_(),
     Plain = #mqtt_client{client_id = <<"client1">>, username = <<"plain">>},
     Md5 = #mqtt_client{client_id = <<"md5">>, username = <<"md5">>},
     Sha = #mqtt_client{client_id = <<"sha">>, username = <<"sha">>},
@@ -171,7 +169,7 @@ init_auth_() ->
                             salt character varying(40))").
 
 -define(INIT_AUTH, "INSERT INTO mqtt_user (id, is_superuser, username, password, salt)
-                     VALUES  
+                     VALUES
                      (1, true, 'plain', 'plain', 'salt'),
                      (2, false, 'md5', '1bc29b36f623ba82aaf6724fd3b16718', 'salt'),
                      (3, false, 'sha', 'd8f4590320e1343a915b6394170650a8f35d6926', 'salt'),
@@ -182,7 +180,7 @@ init_auth_() ->
 
 all() ->
     [{group, emqx_auth_pgsql_auth},
-     {group, emqx_auth_pgsql_acl}, 
+     {group, emqx_auth_pgsql_acl},
      {group, emqx_auth_pgsql},
      {group, auth_pgsql_config}
     ].
@@ -191,7 +189,7 @@ groups() ->
     [{emqx_auth_pgsql_auth, [sequence],
      [check_auth, list_auth]},
     {emqx_auth_pgsql_acl, [sequence],
-     [check_acl, acl_super]}, 
+     [check_acl, acl_super]},
     {emqx_auth_pgsql, [sequence],
      [comment_config]},
     {auth_pgsql_config, [sequence], [server_config]}
@@ -217,7 +215,7 @@ comment_config(_) ->
     ?assertEqual([], emqx_access_control:lookup_mods(acl)).
 
 check_auth(_) ->
-    init_auth_(), 
+    init_auth_(),
     Plain = #mqtt_client{client_id = <<"client1">>, username = <<"plain">>},
     Md5 = #mqtt_client{client_id = <<"md5">>, username = <<"md5">>},
     Sha = #mqtt_client{client_id = <<"sha">>, username = <<"sha">>},
@@ -267,25 +265,25 @@ check_acl(_) ->
     User2 = #mqtt_client{peername = {{127,0,0,1}, 1}, client_id = <<"c2">>, username = <<"u2">>},
     allow = emqx_access_control:check_acl(User1, subscribe, <<"t1">>),
     deny = emqx_access_control:check_acl(User2, subscribe, <<"t1">>),
-    
+
     User3 = #mqtt_client{peername = {{10,10,0,110}, 1}, client_id = <<"c1">>, username = <<"u1">>},
     User4 = #mqtt_client{peername = {{10,10,10,110}, 1}, client_id = <<"c1">>, username = <<"u1">>},
     allow = emqx_access_control:check_acl(User3, subscribe, <<"t1">>),
     allow = emqx_access_control:check_acl(User3, subscribe, <<"t1">>),
     allow = emqx_access_control:check_acl(User3, subscribe, <<"t2">>),%% nomatch -> ignore -> emqttd acl
     allow = emqx_access_control:check_acl(User4, subscribe, <<"t1">>),%% nomatch -> ignore -> emqttd acl
-    
+
     User5 = #mqtt_client{peername = {{127,0,0,1}, 1}, client_id = <<"c3">>, username = <<"u3">>},
     allow = emqx_access_control:check_acl(User5, subscribe, <<"t1">>),
     allow = emqx_access_control:check_acl(User5, publish, <<"t1">>).
 
 acl_super(_Config) ->
     reload([{password_hash, plain}]),
-    {ok, C} = emqttc:start_link([{host, "localhost"}, {client_id, <<"simpleClient">>}, {username, <<"plain">>}, {password, <<"plain">>}]),
+    {ok, C} = emqx_client:start_link([{host, "localhost"}, {client_id, <<"simpleClient">>},
+                                      {username, <<"plain">>}, {password, <<"plain">>}]),
     timer:sleep(10),
-    emqttc:subscribe(C, <<"TopicA">>, qos2),
-    timer:sleep(1000),
-    emqttc:publish(C, <<"TopicA">>, <<"Payload">>, qos2),
+    emqx_client:subscribe(C, <<"TopicA">>, qos2),
+    emqx_client:publish(C, <<"TopicA">>, <<"Payload">>, qos2),
     timer:sleep(1000),
     receive
         {publish, Topic, Payload} ->
@@ -295,7 +293,7 @@ acl_super(_Config) ->
             io:format("Error: receive timeout!~n"),
             ok
     end,
-    emqttc:disconnect(C).
+    emqx_client:disconnect(C).
 
 server_config(_) ->
     I = [{host, "localhost"},
@@ -334,7 +332,7 @@ init_acl_() ->
     {ok, [], []} = epgsql:squery(Pid, ?CREATE_ACL_TABLE),
     {ok, _} = epgsql:equery(Pid, ?INIT_ACL).
 
-drop_acl_() -> 
+drop_acl_() ->
     {ok, Pid} = ecpool_worker:client(gproc_pool:pick_worker({ecpool, ?POOL})),
     {ok, [], []}= epgsql:squery(Pid, ?DROP_ACL_TABLE).
 
@@ -347,8 +345,8 @@ start_apps(App, DataDir) ->
     application:ensure_all_started(App).
 
 reload(Config) when is_list(Config) ->
-    application:stop(?APP), 
+    application:stop(?APP),
     [application:set_env(?APP, K, V) || {K, V} <- Config],
-    application:start(?APP). 
+    application:start(?APP).
 
 
