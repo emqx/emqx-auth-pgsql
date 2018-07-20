@@ -4,7 +4,7 @@ PROJECT_VERSION = 2.3.11
 
 DEPS = epgsql ecpool clique
 
-dep_epgsql = git https://github.com/epgsql/epgsql master
+dep_epgsql = git https://github.com/epgsql/epgsql 4.1.0
 dep_ecpool = git https://github.com/emqtt/ecpool v0.2.1
 dep_clique = git https://github.com/emqtt/clique v0.3.10
 
