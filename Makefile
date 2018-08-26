@@ -2,11 +2,12 @@ PROJECT = emqx_auth_pgsql
 PROJECT_DESCRIPTION = EMQ X Authentication/ACL with PostgreSQL
 PROJECT_VERSION = 3.0
 
-DEPS = epgsql ecpool clique
+DEPS = epgsql ecpool clique emqx_passwd
 
 dep_epgsql = git https://github.com/epgsql/epgsql 4.1.0
-dep_ecpool = git https://github.com/emqtt/ecpool master
+dep_ecpool = git https://github.com/emqx/ecpool master
 dep_clique = git https://github.com/emqx/clique
+dep_emqx_passwd = git https://github.com/emqx/emqx-passwd emqx30
 
 BUILD_DEPS = emqx cuttlefish
 dep_emqx = git git@github.com:emqtt/emqttd emqx30

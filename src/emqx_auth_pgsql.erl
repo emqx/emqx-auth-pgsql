@@ -33,16 +33,17 @@
 init({AuthQuery, SuperQuery, HashType}) ->
     {ok, #state{auth_query = AuthQuery, super_query = SuperQuery, hash_type = HashType}}.
 
-check(#mqtt_client{username = Username}, Password, _State) when ?UNDEFINED(Username); ?UNDEFINED(Password) ->
+check(#{username := Username}, Password, _State)
+    when ?UNDEFINED(Username); ?UNDEFINED(Password) ->
     {error, username_or_password_undefined};
 
-check(Client, Password, #state{auth_query  = {AuthSql, AuthParams},
-                               super_query = SuperQuery,
-                               hash_type   = HashType}) ->
-    case emqx_auth_pgsql_cli:equery(AuthSql, AuthParams, Client) of
+check(Credentials, Password, #state{auth_query  = {AuthSql, AuthParams},
+                                    super_query = SuperQuery,
+                                    hash_type   = HashType}) ->
+    case emqx_auth_pgsql_cli:equery(AuthSql, AuthParams, Credentials) of
         {ok, _, [Record]} ->
             case check_pass(Record, Password, HashType) of
-                ok -> {ok, is_superuser(SuperQuery, Client)};
+                ok -> {ok, is_superuser(SuperQuery, Credentials)};
                 Error -> Error
             end;
          {ok, _, []} ->
@@ -52,21 +53,18 @@ check(Client, Password, #state{auth_query  = {AuthSql, AuthParams},
      end.
 
 check_pass({PassHash}, Password, HashType) ->
-    check_pass(PassHash, hash(HashType, Password));
+    check_pass(PassHash, emqx_passwd:hash(HashType, Password));
 check_pass({PassHash, Salt}, Password, {pbkdf2, Macfun, Iterations, Dklen}) ->
-    check_pass(PassHash, hash(pbkdf2, {Salt, Password, Macfun, Iterations, Dklen}));
+    check_pass(PassHash, emqx_passwd:hash(pbkdf2, {Salt, Password, Macfun, Iterations, Dklen}));
 check_pass({PassHash, Salt}, Password, {salt, bcrypt}) ->
-    check_pass(PassHash, hash(bcrypt, {Salt, Password}));
+    check_pass(PassHash, emqx_passwd:hash(bcrypt, {Salt, Password}));
 check_pass({PassHash, Salt}, Password, {salt, HashType}) ->
-    check_pass(PassHash, hash(HashType, <<Salt/binary, Password/binary>>));
+    check_pass(PassHash, emqx_passwd:hash(HashType, <<Salt/binary, Password/binary>>));
 check_pass({PassHash, Salt}, Password, {HashType, salt}) ->
-    check_pass(PassHash, hash(HashType, <<Password/binary, Salt/binary>>)).
+    check_pass(PassHash, emqx_passwd:hash(HashType, <<Password/binary, Salt/binary>>)).
 
 check_pass(PassHash, PassHash) -> ok;
-check_pass(_, _)               -> {error, password_error}. 
-
-hash(Type, Password) ->
-    emqx_auth_mod:passwd_hash(Type, Password).
+check_pass(_Hash1, _Hash2)     -> {error, password_error}.
 
 description() -> "Authentication with PostgreSQL".
 
@@ -74,11 +72,11 @@ description() -> "Authentication with PostgreSQL".
 %% Is Superuser?
 %%--------------------------------------------------------------------
 
--spec(is_superuser(undefined | {string(), list()}, mqtt_client()) -> boolean()).
-is_superuser(undefined, _Client) ->
+-spec(is_superuser(undefined | {string(), list()}, emqx_types:credentials()) -> boolean()).
+is_superuser(undefined, _Credentials) ->
     false;
-is_superuser({SuperSql, Params}, Client) ->
-    case emqx_auth_pgsql_cli:equery(SuperSql, Params, Client) of
+is_superuser({SuperSql, Params}, Credentials) ->
+    case emqx_auth_pgsql_cli:equery(SuperSql, Params, Credentials) of
         {ok, [_Super], [{true}]} ->
             true;
         {ok, [_Super], [_False]} ->
