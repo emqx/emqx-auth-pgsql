@@ -57,7 +57,7 @@ check(mqtt, Password, Client = #mqtt_client{headers = Headers, username = Userna
             {stop, Client};
         {ok, _, [{TenantId, ProductId, GroupId, DeviceId, Username, Token, _Status, 1}]} ->
             Headers1 = mqtt_headers(TenantId, ProductId, GroupId, DeviceId, Headers),
-            Mountpoint = mountpoint(<<"mqtt">>, TenantId, ProductId, DeviceId),
+            Mountpoint = mountpoint(<<"mqtt">>, TenantId, ProductId),
             case check_pass({Token}, Password, HashType) of
                 ok ->
                     ClientId2 = <<TenantId/binary, ":", ProductId/binary, ":", DeviceId/binary>>,
@@ -71,7 +71,7 @@ check(mqtt, Password, Client = #mqtt_client{headers = Headers, username = Userna
             {stop, Client#mqtt_client{headers = Headers2}};
         {ok, _, [{TenantId, ProductId, GroupId, DeviceId, _DeviceUsername, _Token, _Status, 2}]} ->
             Headers3 = mqtt_headers(TenantId, ProductId, GroupId, DeviceId, Headers),
-            Mountpoint = mountpoint(<<"mqtt">>, TenantId, ProductId, DeviceId),
+            Mountpoint = mountpoint(<<"mqtt">>, TenantId, ProductId),
             ClientId3 = <<TenantId/binary, ":", ProductId/binary, ":", DeviceId/binary>>,
             Sql = "select id from cert_auth where \"clientID\" = $1 and \"CN\" = $2 and enable = 1 limit 1",
             case emqx_auth_pgsql_cli:equery(Sql, [ClientId3, Username]) of
@@ -115,6 +115,9 @@ mqtt_headers(TenantId, ProductId, GroupId, DeviceId, Headers) ->
      {group_id, GroupId},
      {device_id, DeviceId},
      {is_superuser, false} | Headers].
+
+mountpoint(Protocol, TenantId, ProductId) ->
+    emqx_topic:encode(<<>>, [Protocol, TenantId, ProductId]).
 
 mountpoint(Protocol, TenantId, ProductId, DeviceId) ->
     emqx_topic:encode(<<>>, [Protocol, TenantId, ProductId, DeviceId]).
