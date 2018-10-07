@@ -57,13 +57,12 @@ check(mqtt, Password, Client = #mqtt_client{headers = Headers, username = Userna
             {stop, Client};
         {ok, _, [{TenantId, ProductId, GroupId, DeviceId, Username, Token, _Status, 1, Type}]} ->
             Headers1 = mqtt_headers(TenantId, ProductId, GroupId, DeviceId, Type, Headers),
-            Mountpoint = case Type of
-                2 -> mountpoint(<<"mqtt">>, TenantId, DeviceId);
-                _ -> mountpoint(<<"mqtt">>, TenantId, ProductId, DeviceId)
+            {Mountpoint, ClientId2} = case Type of
+                2 -> {mountpoint(<<"mqtt">>, TenantId, DeviceId), <<TenantId/binary, ":", DeviceId/binary>>};
+                _ -> {mountpoint(<<"mqtt">>, TenantId, ProductId, DeviceId), <<TenantId/binary, ":", ProductId/binary, ":",DeviceId/binary>>}
             end,
             case check_pass({Token}, Password, HashType) of
                 ok ->
-                    ClientId2 = <<TenantId/binary, ":", ProductId/binary, ":", DeviceId/binary>>,
                     {ok, Client#mqtt_client{headers = Headers1, client_id = ClientId2, mountpoint = Mountpoint}};
                 Error ->
                     lager:error("Username '~s' login failed for ~p", [Username, Error]),
