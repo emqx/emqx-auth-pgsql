@@ -20,24 +20,23 @@
 
 -include_lib("emqx/include/emqx.hrl").
 
--export([parse_query/1]).
 -export([connect/1]).
--export([squery/1]).
+-export([parse_query/2]).
 -export([equery/2, equery/3]).
 
 %%--------------------------------------------------------------------
 %% Avoid SQL Injection: Parse SQL to Parameter Query.
 %%--------------------------------------------------------------------
 
-parse_query(undefined) ->
+parse_query(_Par, undefined) ->
     undefined;
-parse_query(Sql) ->
+parse_query(Par, Sql) ->
     case re:run(Sql, "'%[uca]'", [global, {capture, all, list}]) of
         {match, Variables} ->
             Params = [Var || [Var] <- Variables],
-            {pgvar(Sql, Params), Params};
+            {atom_to_list(Par), Params};
         nomatch ->
-            {Sql, []}
+            {atom_to_list(Par), []}
     end.
 
 pgvar(Sql, Params) ->
@@ -54,7 +53,17 @@ connect(Opts) ->
     Host     = proplists:get_value(host, Opts),
     Username = proplists:get_value(username, Opts),
     Password = proplists:get_value(password, Opts),
-    epgsql:connect(Host, Username, Password, conn_opts(Opts)).
+    {ok, C} = epgsql:connect(Host, Username, Password, conn_opts(Opts)),
+    lists:foreach(fun(Par) ->
+        Sql0 = application:get_env(?APP, Par, undefined),
+        case parse_query(Par, Sql0) of
+            undefined -> ok;
+            {_, Params} ->
+                Sql = pgvar(Sql0, Params),
+                epgsql:parse(C, atom_to_list(Par), Sql, [])
+        end
+    end,  [auth_query, acl_query, super_query]).
+
 
 conn_opts(Opts) ->
     conn_opts(Opts, []).
@@ -72,9 +81,6 @@ conn_opts([Opt = {ssl_opts, _}|Opts], Acc) ->
     conn_opts(Opts, [Opt|Acc]);
 conn_opts([_Opt|Opts], Acc) ->
     conn_opts(Opts, Acc).
-
-squery(Sql) ->
-    ecpool:with_client(?APP, fun(C) -> epgsql:squery(C, Sql) end).
 
 equery(Sql, Params) ->
     ecpool:with_client(?APP, fun(C) -> epgsql:equery(C, Sql, Params) end).
