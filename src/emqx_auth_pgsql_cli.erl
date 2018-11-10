@@ -62,7 +62,8 @@ connect(Opts) ->
                 Sql = pgvar(Sql0, Params),
                 epgsql:parse(C, atom_to_list(Par), Sql, [])
         end
-    end,  [auth_query, acl_query, super_query]).
+    end,  [auth_query, acl_query, super_query]),
+    {ok, C}.
 
 
 conn_opts(Opts) ->
@@ -83,10 +84,10 @@ conn_opts([_Opt|Opts], Acc) ->
     conn_opts(Opts, Acc).
 
 equery(Sql, Params) ->
-    ecpool:with_client(?APP, fun(C) -> epgsql:equery(C, Sql, Params) end).
+    ecpool:with_client(?APP, fun(C) -> epgsql:prepared_query(C, Sql, Params) end).
 
 equery(Sql, Params, Credentials) ->
-    ecpool:with_client(?APP, fun(C) -> epgsql:equery(C, Sql, replvar(Params, Credentials)) end).
+    ecpool:with_client(?APP, fun(C) -> epgsql:prepared_query(C, Sql, replvar(Params, Credentials)) end).
 
 replvar(Params, Credentials) ->
     replvar(Params, Credentials, []).
