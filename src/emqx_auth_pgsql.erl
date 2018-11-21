@@ -57,10 +57,7 @@ check(mqtt, Password, Client = #mqtt_client{headers = Headers, username = Userna
             {stop, Client};
         {ok, _, [{TenantId, ProductId, GroupId, DeviceId, Username, Token, _Status, 1, Type}]} ->
             Headers1 = mqtt_headers(TenantId, ProductId, GroupId, DeviceId, Type, Headers),
-            {Mountpoint, ClientId2} = case Type of
-                2 -> {mountpoint(<<"mqtt">>, TenantId, DeviceId), <<TenantId/binary, ":", DeviceId/binary>>};
-                _ -> {mountpoint(<<"mqtt">>, TenantId, ProductId, DeviceId), <<TenantId/binary, ":", ProductId/binary, ":",DeviceId/binary>>}
-            end,
+            {Mountpoint, ClientId2} = {mountpoint(<<"mqtt">>, TenantId, ProductId, DeviceId), <<TenantId/binary, ":", ProductId/binary, ":",DeviceId/binary>>},
             case check_pass({Token}, Password, HashType) of
                 ok ->
                     {ok, Client#mqtt_client{headers = Headers1, client_id = ClientId2, mountpoint = Mountpoint}};
@@ -73,10 +70,7 @@ check(mqtt, Password, Client = #mqtt_client{headers = Headers, username = Userna
             {stop, Client#mqtt_client{headers = Headers2}};
         {ok, _, [{TenantId, ProductId, GroupId, DeviceId, _DeviceUsername, _Token, _Status, 2, Type}]} ->
             Headers3 = mqtt_headers(TenantId, ProductId, GroupId, DeviceId, Type, Headers),
-            Mountpoint = case Type of
-                2 -> mountpoint(<<"mqtt">>, TenantId, DeviceId);
-                _ -> mountpoint(<<"mqtt">>, TenantId, ProductId, DeviceId)
-            end,
+            Mountpoint = mountpoint(<<"mqtt">>, TenantId, ProductId, DeviceId),
             ClientId3 = <<TenantId/binary, ":", ProductId/binary, ":", DeviceId/binary>>,
             Sql = "select id from cert_auth where \"clientID\" = $1 and \"CN\" = $2 and enable = 1 limit 1",
             CN = proplists:get_value(cn, Headers),
@@ -124,9 +118,6 @@ mqtt_headers(TenantId, ProductId, GroupId, DeviceId, Type, Headers) ->
      {device_id, DeviceId},
      {is_superuser, false},
      {type, Type} | Headers].
-
-mountpoint(Protocol, TenantId, DeviceId) ->
-    emqx_topic:encode(<<>>, [Protocol, TenantId, DeviceId]).
 
 mountpoint(Protocol, TenantId, ProductId, DeviceId) ->
     emqx_topic:encode(<<>>, [Protocol, TenantId, ProductId, DeviceId]).
