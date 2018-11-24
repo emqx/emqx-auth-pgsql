@@ -6,7 +6,7 @@ DEPS = epgsql ecpool clique emqx_passwd
 
 dep_epgsql = git-emqx https://github.com/epgsql/epgsql 4.1.0
 dep_ecpool = git-emqx https://github.com/emqx/ecpool master
-dep_clique = git-emqx https://github.com/emqx/clique
+dep_clique = git-emqx https://github.com/emqx/clique develop
 dep_emqx_passwd = git-emqx https://github.com/emqx/emqx-passwd emqx30
 
 BUILD_DEPS = emqx cuttlefish
