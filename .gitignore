@@ -13,3 +13,7 @@ data/
 .DS_Store
 cover/
 eunit.coverdata
+erlang.mk
+_build/
+rebar.lock
+
