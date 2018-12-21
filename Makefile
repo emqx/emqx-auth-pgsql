@@ -5,8 +5,8 @@ PROJECT_VERSION = 3.0
 DEPS = epgsql ecpool clique emqx_passwd
 
 dep_epgsql = git-emqx https://github.com/epgsql/epgsql 4.1.0
-dep_ecpool = git-emqx https://github.com/emqx/ecpool master
-dep_clique = git-emqx https://github.com/emqx/clique develop
+dep_ecpool = git-emqx https://github.com/emqx/ecpool v0.3.0
+dep_clique = git-emqx https://github.com/emqx/clique v0.3.11
 dep_emqx_passwd = git-emqx https://github.com/emqx/emqx-passwd emqx30
 
 BUILD_DEPS = emqx cuttlefish
@@ -24,11 +24,7 @@ TEST_ERLC_OPTS += +debug_info
 
 COVER = true
 
-define dep_fetch_git-emqx
-	git clone -q --depth 1 -b $(call dep_commit,$(1)) -- $(call dep_repo,$(1)) $(DEPS_DIR)/$(call dep_name,$(1)) > /dev/null 2>&1; \
-	cd $(DEPS_DIR)/$(call dep_name,$(1));
-endef
-
+$(shell [ -f erlang.mk ] || curl -s -o erlang.mk https://raw.githubusercontent.com/emqx/erlmk/master/erlang.mk)
 include erlang.mk
 
 app:: rebar.config
