@@ -1,5 +1,4 @@
-%%--------------------------------------------------------------------
-%% Copyright (c) 2013-2018 EMQ Enterprise, Inc. (http://emqtt.io)
+%% Copyright (c) 2018 EMQ Technologies Co., Ltd. All Rights Reserved.
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -12,33 +11,32 @@
 %% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
-%%--------------------------------------------------------------------
 
--module(emq_auth_pgsql_cli).
+-module(emqx_auth_pgsql_cli).
 
 -behaviour(ecpool_worker).
 
--include("emq_auth_pgsql.hrl").
+-include("emqx_auth_pgsql.hrl").
 
--include_lib("emqttd/include/emqttd.hrl").
+-include_lib("emqx/include/emqx.hrl").
 
--import(proplists, [get_value/2]).
-
--export([parse_query/1, connect/1, squery/1, equery/2, equery/3]).
+-export([connect/1]).
+-export([parse_query/2]).
+-export([equery/2, equery/3]).
 
 %%--------------------------------------------------------------------
 %% Avoid SQL Injection: Parse SQL to Parameter Query.
 %%--------------------------------------------------------------------
 
-parse_query(undefined) ->
+parse_query(_Par, undefined) ->
     undefined;
-parse_query(Sql) ->
+parse_query(Par, Sql) ->
     case re:run(Sql, "'%[uca]'", [global, {capture, all, list}]) of
         {match, Variables} ->
             Params = [Var || [Var] <- Variables],
-            {pgvar(Sql, Params), Params};
+            {atom_to_list(Par), Params};
         nomatch ->
-            {Sql, []}
+            {atom_to_list(Par), []}
     end.
 
 pgvar(Sql, Params) ->
@@ -52,10 +50,21 @@ pgvar(Sql, Params) ->
 %%--------------------------------------------------------------------
 
 connect(Opts) ->
-    Host     = get_value(host, Opts),
-    Username = get_value(username, Opts),
-    Password = get_value(password, Opts),
-    epgsql:connect(Host, Username, Password, conn_opts(Opts)).
+    Host     = proplists:get_value(host, Opts),
+    Username = proplists:get_value(username, Opts),
+    Password = proplists:get_value(password, Opts),
+    {ok, C} = epgsql:connect(Host, Username, Password, conn_opts(Opts)),
+    lists:foreach(fun(Par) ->
+        Sql0 = application:get_env(?APP, Par, undefined),
+        case parse_query(Par, Sql0) of
+            undefined -> ok;
+            {_, Params} ->
+                Sql = pgvar(Sql0, Params),
+                epgsql:parse(C, atom_to_list(Par), Sql, [])
+        end
+    end,  [auth_query, acl_query, super_query]),
+    {ok, C}.
+
 
 conn_opts(Opts) ->
     conn_opts(Opts, []).
@@ -74,25 +83,23 @@ conn_opts([Opt = {ssl_opts, _}|Opts], Acc) ->
 conn_opts([_Opt|Opts], Acc) ->
     conn_opts(Opts, Acc).
 
-squery(Sql) ->
-    ecpool:with_client(?APP, fun(C) -> epgsql:squery(C, Sql) end).
-
 equery(Sql, Params) ->
-    ecpool:with_client(?APP, fun(C) -> epgsql:equery(C, Sql, Params) end).
+    ecpool:with_client(?APP, fun(C) -> epgsql:prepared_query(C, Sql, Params) end).
 
-equery(Sql, Params, Client) ->
-    ecpool:with_client(?APP, fun(C) -> epgsql:equery(C, Sql, replvar(Params, Client)) end).
+equery(Sql, Params, Credentials) ->
+    ecpool:with_client(?APP, fun(C) -> epgsql:prepared_query(C, Sql, replvar(Params, Credentials)) end).
 
-replvar(Params, Client) ->
-    replvar(Params, Client, []).
+replvar(Params, Credentials) ->
+    replvar(Params, Credentials, []).
 
-replvar([], _Client, Acc) ->
+replvar([], _Credentials, Acc) ->
     lists:reverse(Acc);
-replvar(["'%u'" | Params], Client = #mqtt_client{username = Username}, Acc) ->
-    replvar(Params, Client, [Username | Acc]);
-replvar(["'%c'" | Params], Client = #mqtt_client{client_id = ClientId}, Acc) ->
-    replvar(Params, Client, [ClientId | Acc]);
-replvar(["'%a'" | Params], Client = #mqtt_client{peername = {IpAddr, _}}, Acc) ->
-    replvar(Params, Client, [inet_parse:ntoa(IpAddr) | Acc]);
-replvar([Param | Params], Client, Acc) ->
-    replvar(Params, Client, [Param | Acc]).
+replvar(["'%u'" | Params], Credentials = #{username := Username}, Acc) ->
+    replvar(Params, Credentials, [Username | Acc]);
+replvar(["'%c'" | Params], Credentials = #{client_id := ClientId}, Acc) ->
+    replvar(Params, Credentials, [ClientId | Acc]);
+replvar(["'%a'" | Params], Credentials = #{peername := {IpAddr, _}}, Acc) ->
+    replvar(Params, Credentials, [inet_parse:ntoa(IpAddr) | Acc]);
+replvar([Param | Params], Credentials, Acc) ->
+    replvar(Params, Credentials, [Param | Acc]).
+

@@ -4,7 +4,7 @@ ebin
 .DS_Store
 .erlang.mk/
 deps/
-emq_auth_pgsql.d
+emqx_auth_pgsql.d
 ct.coverdata
 logs/
 test/ct.cover.spec
@@ -13,3 +13,5 @@ data/
 .DS_Store
 cover/
 eunit.coverdata
+_build/
+rebar.lock

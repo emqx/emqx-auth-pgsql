@@ -1,6 +1,5 @@
-
-emq-auth-pgsql
-==============
+emqx_auth_pgsql
+===============
 
 Authentication/ACL with PostgreSQL Database.
 
@@ -12,7 +11,7 @@ make && make tests
 Configuration
 -------------
 
-File: etc/emq_auth_pgsql.conf
+File: etc/emqx_auth_pgsql.conf
 
 ```
 ## PostgreSQL server address.
@@ -118,7 +117,7 @@ auth.pgsql.acl_query = select allow, ipaddr, username, clientid, access, topic f
 Load Plugin
 -----------
 
-./bin/emqttd_ctl plugins load emq_auth_pgsql
+./bin/emqx_ctl plugins load emqx_auth_pgsql
 
 Auth Table
 ----------
@@ -132,7 +131,7 @@ CREATE TABLE mqtt_user (
   username character varying(100),
   password character varying(100),
   salt character varying(40)
-) 
+)
 ```
 
 ACL Table
@@ -147,7 +146,7 @@ CREATE TABLE mqtt_acl (
   clientid character varying(100),
   access  integer,
   topic character varying(100)
-) 
+)
 
 INSERT INTO mqtt_acl (id, allow, ipaddr, username, clientid, access, topic)
 VALUES
