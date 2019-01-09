@@ -24,7 +24,7 @@
 
 -import(proplists, [get_value/2]).
 
--export([parse_query/2, connect/1, squery/1, equery/2, equery/3]).
+-export([parse_query/2, connect/1, equery/2, equery/3]).
 
 %%--------------------------------------------------------------------
 %% Avoid SQL Injection: Parse SQL to Parameter Query.
@@ -86,17 +86,13 @@ conn_opts([Opt = {ssl_opts, _}|Opts], Acc) ->
 conn_opts([_Opt|Opts], Acc) ->
     conn_opts(Opts, Acc).
 
-squery(Sql) ->
-    lager:debug("Sql:~p", [Sql]),
-    ecpool:with_client(?APP, fun(C) -> epgsql:squery(C, Sql) end).
-
 equery(Sql, Params) ->
     lager:debug("Sql:~p, Params:~p", [Sql, Params]),
-    ecpool:with_client(?APP, fun(C) -> epgsql:equery(C, Sql, Params) end).
+    ecpool:with_client(?APP, fun(C) -> epgsql:prepared_query(C, Sql, Params) end).
 
 equery(Sql, Params, Client) ->
     lager:debug("Sql:~p, Params:~p", [Sql, replvar(Params, Client)]),
-    ecpool:with_client(?APP, fun(C) -> epgsql:equery(C, Sql, replvar(Params, Client)) end).
+    ecpool:with_client(?APP, fun(C) -> epgsql:prepared_query(C, Sql, replvar(Params, Client)) end).
 
 replvar(Params, Client) ->
     replvar(Params, Client, []).
