@@ -24,21 +24,21 @@
 
 -import(proplists, [get_value/2]).
 
--export([parse_query/1, connect/1, squery/1, equery/2, equery/3]).
+-export([parse_query/2, connect/1, squery/1, equery/2, equery/3]).
 
 %%--------------------------------------------------------------------
 %% Avoid SQL Injection: Parse SQL to Parameter Query.
 %%--------------------------------------------------------------------
 
-parse_query(undefined) ->
+parse_query(_Par, undefined) ->
     undefined;
-parse_query(Sql) ->
+parse_query(Par, Sql) ->
     case re:run(Sql, "'%[uca]'", [global, {capture, all, list}]) of
         {match, Variables} ->
             Params = [Var || [Var] <- Variables],
-            {pgvar(Sql, Params), Params};
+            {atom_to_list(Par), Params};
         nomatch ->
-            {Sql, []}
+            {atom_to_list(Par), []}
     end.
 
 pgvar(Sql, Params) ->
@@ -55,7 +55,19 @@ connect(Opts) ->
     Host     = get_value(host, Opts),
     Username = get_value(username, Opts),
     Password = get_value(password, Opts),
-    epgsql:connect(Host, Username, Password, conn_opts(Opts)).
+    {ok, C} = epgsql:connect(Host, Username, Password, conn_opts(Opts)),
+    lists:foreach(fun(Par) ->
+        Sql0 = application:get_env(?APP, Par, undefined),
+        case parse_query(Par, Sql0) of
+            undefined -> ok;
+            {_, Params} ->
+                Sql = pgvar(Sql0, Params),
+                epgsql:parse(C, atom_to_list(Par), Sql, [])
+        end
+    end,  [auth_query, acl_query, super_query]),
+    epgsql:parse(C, "lwm2m_auth", "select \"tenantID\", \"productID\", \"deviceID\", \"autoSub\", blocked from clients where \"deviceID\" = $1 limit 1", []),
+    epgsql:parse(C, "cert_auth", "select id from cert_auth where \"clientID\" = $1 and \"CN\" = $2 and enable = 1 limit 1", []),
+    {ok, C}.
 
 conn_opts(Opts) ->
     conn_opts(Opts, []).

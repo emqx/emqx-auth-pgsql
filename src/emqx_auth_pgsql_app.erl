@@ -20,7 +20,7 @@
 
 -include("emqx_auth_pgsql.hrl").
 
--import(emqx_auth_pgsql_cli, [parse_query/1]).
+-import(emqx_auth_pgsql_cli, [parse_query/2]).
 
 %% Application callbacks
 -export([start/2, stop/1]).
@@ -50,7 +50,7 @@ stop(_State) ->
 
 if_enabled(Par, Fun) ->
     case application:get_env(?APP, Par) of
-        {ok, Query} -> Fun(parse_query(Query));
+        {ok, Query} -> Fun(parse_query(Par, Query));
         undefined   -> ok
     end.
 

@@ -29,8 +29,7 @@ check(lwm2m, _Password, Client = #mqtt_client{client_id = ClientId}, _Env) ->
                {lwm2m_dn_dm_topic, {<<"inbox">>, 0}},
                {lwm2m_model, psm}],
     % {ok, Client#mqtt_client{headers = Headers}};
-    AuthSql = "select \"tenantID\", \"productID\", \"deviceID\", \"autoSub\", blocked from clients where \"deviceID\" = $1 limit 1",
-    case emqx_auth_pgsql_cli:equery(AuthSql, [ClientId]) of
+    case emqx_auth_pgsql_cli:equery("lwm2m_auth", [ClientId]) of
         {ok, _, [{_TenantId, _ProductId, _DeviceId, _AutoSub, 1}]} ->
             lager:error("ClientId '~s' login failed for black list", [ClientId]),
             {stop, Client};
@@ -72,9 +71,8 @@ check(mqtt, Password, Client = #mqtt_client{headers = Headers, username = Userna
             Headers3 = mqtt_headers(TenantId, ProductId, GroupId, DeviceId, Type, Headers),
             Mountpoint = mountpoint(<<"mqtt">>, TenantId, ProductId, DeviceId),
             ClientId3 = <<TenantId/binary, ":", ProductId/binary, ":", DeviceId/binary>>,
-            Sql = "select id from cert_auth where \"clientID\" = $1 and \"CN\" = $2 and enable = 1 limit 1",
             CN = proplists:get_value(cn, Headers),
-            case emqx_auth_pgsql_cli:equery(Sql, [ClientId3, CN]) of
+            case emqx_auth_pgsql_cli:equery("cert_auth", [ClientId3, CN]) of
                 {ok, _, [_Id]} ->
                     {ok, Client#mqtt_client{headers = Headers3, client_id = ClientId3, mountpoint = Mountpoint}};
                 {ok, _, []} ->
