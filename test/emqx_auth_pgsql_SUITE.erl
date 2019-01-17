@@ -127,7 +127,7 @@ set_special_configs(emqx_auth_pgsql) ->
                         lists:keyreplace(password, 
                                          1, 
                                          lists:keyreplace(pool_size, 1, Server, {pool_size, 1}), 
-                                         {password, "emqtt"})),
+                                         {password, "public"})),
     application:set_env(?APP, acl_query, "select allow, ipaddr, username, clientid, access, topic from mqtt_acl_test where ipaddr = '%a' or username = '%u' or username = '$all' or clientid = '%c'"),
     application:set_env(?APP, super_query, "select is_superuser from mqtt_user_test where username = '%u' limit 1"),
     application:set_env(?APP, auth_query, "select password from mqtt_user_test where username = '%u' limit 1");
