@@ -1,0 +1,7 @@
+{application,emqx_auth_pgsql,
+             [{description,"EMQ X Authentication/ACL with PostgreSQL"},
+              {vsn,"git"},
+              {modules,[]},
+              {registered,[emqx_auth_pgsql_sup]},
+              {applications,[kernel,stdlib,epgsql,ecpool,clique,emqx_passwd]},
+              {mod,{emqx_auth_pgsql_app,[]}}]}.
