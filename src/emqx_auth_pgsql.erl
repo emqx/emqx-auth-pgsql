@@ -20,8 +20,6 @@
 
 -export([check/2, description/0]).
 
--record(state, {auth_query, super_query, hash_type}).
-
 -define(UNDEFINED(S), (S =:= undefined orelse S =:= <<>>)).
 
 %%--------------------------------------------------------------------
@@ -32,9 +30,9 @@ check(Credentials = #{username := Username, password := Password}, _State)
     when ?UNDEFINED(Username); ?UNDEFINED(Password) ->
     {ok, Credentials#{result => username_or_password_undefined}};
 
-check(Credentials = #{password := Password}, #state{auth_query  = {AuthSql, AuthParams},
-                                                   super_query = SuperQuery,
-                                                   hash_type   = HashType}) ->
+check(Credentials = #{password := Password}, #{auth_query  := {AuthSql, AuthParams},
+                                               super_query := SuperQuery,
+                                               hash_type   := HashType}) ->
     CheckPass = case emqx_auth_pgsql_cli:equery(AuthSql, AuthParams, Credentials) of
                     {ok, _, [Record]} ->
                         check_pass(erlang:append_element(Record, Password), HashType);
