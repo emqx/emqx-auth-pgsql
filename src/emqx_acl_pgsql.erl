@@ -21,7 +21,7 @@
 
 check_acl(#{username := <<$$, _/binary>>}, _PubSub, _Topic, _NoMatchAction, _State) ->
     ok;
-check_acl(Credentials, PubSub, Topic, _NoMatchAction，#{acl_query := {AclSql, AclParams}}) ->
+check_acl(Credentials, PubSub, Topic, _NoMatchAction, #{acl_query := {AclSql, AclParams}}) ->
     case emqx_auth_pgsql_cli:equery(AclSql, AclParams, Credentials) of
         {ok, _, []} -> ok;
         {ok, _, Rows} ->
@@ -31,9 +31,9 @@ check_acl(Credentials, PubSub, Topic, _NoMatchAction，#{acl_query := {AclSql, A
                 {matched, deny}  -> {stop, deny};
                 nomatch          -> ok
             end;
-        {error, _Reason} -> 
+        {error, Reason} ->
             logger:error("Mysql check_acl error: ~p~n", [Reason]),
-            ok    
+            ok
     end.
 
 match(_Credentials, _Topic, []) ->

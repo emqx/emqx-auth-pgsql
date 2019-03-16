@@ -32,7 +32,7 @@ check(Credentials = #{username := Username, password := Password}, _State)
     when ?UNDEFINED(Username); ?UNDEFINED(Password) ->
     {ok, Credentials#{result => username_or_password_undefined}};
 
-check(Credentials = {password := Password}, #state{auth_query  = {AuthSql, AuthParams},
+check(Credentials = #{password := Password}, #state{auth_query  = {AuthSql, AuthParams},
                                                    super_query = SuperQuery,
                                                    hash_type   = HashType}) ->
     CheckPass = case emqx_auth_pgsql_cli:equery(AuthSql, AuthParams, Credentials) of
