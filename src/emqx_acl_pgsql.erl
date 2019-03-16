@@ -32,7 +32,7 @@ check_acl(Credentials, PubSub, Topic, _NoMatchAction, #{acl_query := {AclSql, Ac
                 nomatch          -> ok
             end;
         {error, Reason} ->
-            logger:error("Mysql check_acl error: ~p~n", [Reason]),
+            logger:error("Postgres check_acl error: ~p~n", [Reason]),
             ok
     end.
 
