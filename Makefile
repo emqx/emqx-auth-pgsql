@@ -20,7 +20,7 @@ NO_AUTOPATCH = cuttlefish
 ERLC_OPTS += +debug_info
 
 TEST_DEPS = emqx_auth_username
-dep_emqx_auth_username = git-emqx https://github.com/emqx/emqx-auth-username release-3.1
+dep_emqx_auth_username = git-emqx https://github.com/emqx/emqx-auth-username $(BRANCH)
 
 TEST_ERLC_OPTS += +debug_info
 
@@ -33,4 +33,3 @@ app:: rebar.config
 
 app.config::
 	./deps/cuttlefish/cuttlefish -l info -e etc/ -c etc/emqx_auth_pgsql.conf -i priv/emqx_auth_pgsql.schema -d data
-

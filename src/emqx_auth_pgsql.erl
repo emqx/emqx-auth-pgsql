@@ -14,15 +14,11 @@
 
 -module(emqx_auth_pgsql).
 
--behaviour(emqx_auth_mod).
-
 -include("emqx_auth_pgsql.hrl").
 
 -include_lib("emqx/include/emqx.hrl").
 
--export([init/1, check/3, description/0]).
-
--record(state, {auth_query, super_query, hash_type}).
+-export([check/2, description/0]).
 
 -define(UNDEFINED(S), (S =:= undefined orelse S =:= <<>>)).
 
@@ -30,29 +26,34 @@
 %% Auth Module Callbacks
 %%--------------------------------------------------------------------
 
-init({AuthQuery, SuperQuery, HashType}) ->
-    {ok, #state{auth_query = AuthQuery, super_query = SuperQuery, hash_type = HashType}}.
-
-check(#{username := Username}, Password, _State)
+check(Credentials = #{username := Username, password := Password}, _State)
     when ?UNDEFINED(Username); ?UNDEFINED(Password) ->
-    {error, username_or_password_undefined};
+    {ok, Credentials#{result => username_or_password_undefined}};
 
-check(Credentials, Password, #state{auth_query  = {AuthSql, AuthParams},
-                                    super_query = SuperQuery,
-                                    hash_type   = HashType}) ->
-    case emqx_auth_pgsql_cli:equery(AuthSql, AuthParams, Credentials) of
-        {ok, _, [Record]} ->
-            case emqx_passwd:check_pass(erlang:append_element(Record, Password), HashType) of
-                ok -> {ok, is_superuser(SuperQuery, Credentials)};
-                Error -> Error
-            end;
-         {ok, _, []} ->
-            ignore;
-         {error, Reason} ->
-            {error, Reason}
-     end.
-
-description() -> "Authentication with PostgreSQL".
+check(Credentials = #{password := Password}, #{auth_query  := {AuthSql, AuthParams},
+                                               super_query := SuperQuery,
+                                               hash_type   := HashType}) ->
+    CheckPass = case emqx_auth_pgsql_cli:equery(AuthSql, AuthParams, Credentials) of
+                    {ok, _, [Record]} ->
+                        check_pass(erlang:append_element(Record, Password), HashType);
+                    {ok, _, []} ->
+                        {error, not_found};
+                    {error, Reason} ->
+                        logger:error("Pgsql query '~p' failed: ~p", [AuthSql, Reason]),
+                        {error, not_found}
+                end,
+    case CheckPass of
+        ok -> {stop, Credentials#{is_superuser => is_superuser(SuperQuery, Credentials),
+                                  result => success}};
+        {error, not_found} -> ok;
+        {error, ResultCode} ->
+            logger:error("Auth from pgsql failed: ~p", [ResultCode]),
+            {stop, Credentials#{result => ResultCode}}
+    end;
+check(Credentials, Config) ->
+    ResultCode = insufficient_credentials,
+    logger:error("Auth from pgsql failed: ~p, Configs: ~p", [ResultCode, Config]),
+    {ok, Credentials#{result => ResultCode}}.
 
 %%--------------------------------------------------------------------
 %% Is Superuser?
@@ -73,3 +74,10 @@ is_superuser({SuperSql, Params}, Credentials) ->
             false
     end.
 
+check_pass(Password, HashType) ->
+    case emqx_passwd:check_pass(Password, HashType) of
+        ok -> ok;
+        {error, _Reason} -> {error, not_authorized}
+    end.
+
+description() -> "Authentication with PostgreSQL".
