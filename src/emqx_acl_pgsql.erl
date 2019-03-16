@@ -90,7 +90,7 @@ reload_acl(_State) ->
     ok.
 
 description() ->
-    "ACL with PgSql".
+    "ACL with Postgres".
 
 b2l(null) -> null;
 b2l(B)    -> binary_to_list(B).
