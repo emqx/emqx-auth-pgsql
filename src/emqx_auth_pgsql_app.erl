@@ -29,22 +29,28 @@
 
 start(_StartType, _StartArgs) ->
     {ok, Sup} = emqx_auth_pgsql_sup:start_link(),
-    if_enabled(auth_query, fun(AuthQuery) ->
-        SuperQuery = parse_query(super_query, application:get_env(?APP, super_query, undefined)),
-        {ok, HashType}  = application:get_env(?APP, password_hash),
-        AuthEnv = {AuthQuery, SuperQuery, HashType},
-        ok = emqx_access_control:register_mod(auth, emqx_auth_pgsql, AuthEnv)
-    end),
-    if_enabled(acl_query, fun(AclQuery) ->
-        ok = emqx_access_control:register_mod(acl, emqx_acl_pgsql, AclQuery)
-    end),
+    if_enabled(auth_query, fun load_auth_hook/1),
+    if_enabled(acl_query, fun load_acl_hook/1),
     emqx_auth_pgsql_cfg:register(),
     {ok, Sup}.
 
 stop(_State) ->
-    emqx_access_control:unregister_mod(acl, emqx_acl_pgsql),
-    emqx_access_control:unregister_mod(auth, emqx_auth_pgsql),
+    emqx:unhook('client.authenticate', fun emqx_auth_mysql:check/2),
+    emqx:unhook('client.check_acl', fun emqx_acl_mysql:check_acl/5),
     emqx_auth_pgsql_cfg:unregister().
+
+load_auth_hook(AuthQuery) ->
+    SuperQuery = parse_query(application:get_env(?APP, super_query, undefined)),
+    {ok, HashType} = application:get_env(?APP, password_hash),
+    Params = #{auth_query  => AuthQuery,
+               super_query => SuperQuery,
+               hash_type   => HashType},
+    emqx:hook('client.authenticate', fun emqx_auth_mysql:check/2, [Params]).
+
+load_acl_hook(AclQuery) ->
+    emqx:hook('client.acl_check', 
+              fun emqx_acl_mysql:check_acl/5, 
+              [#{acl_query => AclQuery}]).
 
 if_enabled(Par, Fun) ->
     case application:get_env(?APP, Par) of
