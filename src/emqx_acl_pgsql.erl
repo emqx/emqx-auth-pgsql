@@ -14,32 +14,26 @@
 
 -module(emqx_acl_pgsql).
 
--behaviour(emqx_acl_mod).
-
 -include_lib("emqx/include/emqx.hrl").
 
 %% ACL callbacks
--export([init/1, check_acl/2, reload_acl/1, description/0]).
+-export([check_acl/5, reload_acl/1, description/0]).
 
--record(state, {acl_query}).
-
-init(AclQuery) ->
-    {ok, #state{acl_query = AclQuery}}.
-
-check_acl({#{username := <<$$, _/binary>>}, _PubSub, _Topic}, _State) ->
-    ignore;
-
-check_acl({Credentials, PubSub, Topic}, #state{acl_query = {AclSql, AclParams}}) ->
+check_acl(#{username := <<$$, _/binary>>}, _PubSub, _Topic, _NoMatchAction, _State) ->
+    ok;
+check_acl(Credentials, PubSub, Topic, _NoMatchAction, #{acl_query := {AclSql, AclParams}}) ->
     case emqx_auth_pgsql_cli:equery(AclSql, AclParams, Credentials) of
-        {ok, _, []} -> ignore;
+        {ok, _, []} -> ok;
         {ok, _, Rows} ->
             Rules = filter(PubSub, compile(Rows)),
             case match(Credentials, Topic, Rules) of
-                {matched, allow} -> allow;
-                {matched, deny}  -> deny;
-                nomatch          -> ignore
+                {matched, allow} -> {stop, allow};
+                {matched, deny}  -> {stop, deny};
+                nomatch          -> ok
             end;
-        {error, _Reason} -> ignore
+        {error, Reason} ->
+            logger:error("Postgres check_acl error: ~p~n", [Reason]),
+            ok
     end.
 
 match(_Credentials, _Topic, []) ->
@@ -96,7 +90,7 @@ reload_acl(_State) ->
     ok.
 
 description() ->
-    "ACL with PgSql".
+    "ACL with Postgres".
 
 b2l(null) -> null;
 b2l(B)    -> binary_to_list(B).

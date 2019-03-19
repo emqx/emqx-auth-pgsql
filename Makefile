@@ -34,4 +34,3 @@ app:: rebar.config
 
 app.config::
 	./deps/cuttlefish/cuttlefish -l info -e etc/ -c etc/emqx_auth_pgsql.conf -i priv/emqx_auth_pgsql.schema -d data
-
