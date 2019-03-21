@@ -16,6 +16,8 @@
 
 -behaviour(application).
 
+-emqx_plugin(?MODULE).
+
 -include("emqx_auth_pgsql.hrl").
 
 -import(emqx_auth_pgsql_cli, [parse_query/2]).
