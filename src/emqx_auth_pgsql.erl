@@ -28,7 +28,7 @@
 
 check(Credentials = #{username := Username, password := Password}, _State)
     when ?UNDEFINED(Username); ?UNDEFINED(Password) ->
-    {ok, Credentials#{result => username_or_password_undefined}};
+    {ok, Credentials#{auth_result => bad_username_or_password}};
 
 check(Credentials = #{password := Password}, #{auth_query  := {AuthSql, AuthParams},
                                                super_query := SuperQuery,
@@ -44,16 +44,16 @@ check(Credentials = #{password := Password}, #{auth_query  := {AuthSql, AuthPara
                 end,
     case CheckPass of
         ok -> {stop, Credentials#{is_superuser => is_superuser(SuperQuery, Credentials),
-                                  result => success}};
+                                  auth_result => success}};
         {error, not_found} -> ok;
         {error, ResultCode} ->
             logger:error("Auth from pgsql failed: ~p", [ResultCode]),
-            {stop, Credentials#{result => ResultCode}}
+            {stop, Credentials#{auth_result => ResultCode}}
     end;
 check(Credentials, Config) ->
     ResultCode = insufficient_credentials,
     logger:error("Auth from pgsql failed: ~p, Configs: ~p", [ResultCode, Config]),
-    {ok, Credentials#{result => ResultCode}}.
+    {ok, Credentials#{auth_result => ResultCode}}.
 
 %%--------------------------------------------------------------------
 %% Is Superuser?
