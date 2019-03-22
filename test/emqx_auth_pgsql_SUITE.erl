@@ -178,7 +178,7 @@ list_auth(_Config) ->
     application:start(emqx_auth_username),
     emqx_auth_username:add_user(<<"user1">>, <<"password1">>),
     User1 = #{client_id => <<"client1">>, username => <<"user1">>},
-    {ok, #{result := success}} = emqx_access_control:authenticate(User1#{password => <<"password1">>}),
+    {ok, #{auth_result := success}} = emqx_access_control:authenticate(User1#{password => <<"password1">>}),
     reload([{password_hash, plain}, {auth_query, "select password from mqtt_user_test where username = '%u' limit 1"}]),
     Plain = #{client_id => <<"client1">>, username => <<"plain">>},
     {ok, #{is_superuser := true}} = emqx_access_control:authenticate(Plain#{password => <<"plain">>}),
