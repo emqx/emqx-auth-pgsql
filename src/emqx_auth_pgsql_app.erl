@@ -23,7 +23,9 @@
 -import(emqx_auth_pgsql_cli, [parse_query/2]).
 
 %% Application callbacks
--export([start/2, stop/1]).
+-export([ start/2
+        , stop/1
+        ]).
 
 %%--------------------------------------------------------------------
 %% Application callbacks

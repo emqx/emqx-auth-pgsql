@@ -22,7 +22,9 @@
 
 -export([connect/1]).
 -export([parse_query/2]).
--export([equery/2, equery/3]).
+-export([ equery/2
+        , equery/3
+        ]).
 
 %%--------------------------------------------------------------------
 %% Avoid SQL Injection: Parse SQL to Parameter Query.
