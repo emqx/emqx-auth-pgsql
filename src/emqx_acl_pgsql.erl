@@ -15,6 +15,7 @@
 -module(emqx_acl_pgsql).
 
 -include_lib("emqx/include/emqx.hrl").
+-include_lib("emqx/include/logger.hrl").
 
 %% ACL callbacks
 -export([ check_acl/5
@@ -35,7 +36,7 @@ check_acl(Credentials, PubSub, Topic, _NoMatchAction, #{acl_query := {AclSql, Ac
                 nomatch          -> ok
             end;
         {error, Reason} ->
-            logger:error("Postgres check_acl error: ~p~n", [Reason]),
+            ?LOG(error, "[Postgres] check_acl error: ~p~n", [Reason]),
             ok
     end.
 
