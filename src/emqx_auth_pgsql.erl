@@ -17,6 +17,7 @@
 -include("emqx_auth_pgsql.hrl").
 
 -include_lib("emqx/include/emqx.hrl").
+-include_lib("emqx/include/logger.hrl").
 
 -export([ check/2
         , description/0
@@ -41,7 +42,7 @@ check(Credentials = #{password := Password}, #{auth_query  := {AuthSql, AuthPara
                     {ok, _, []} ->
                         {error, not_found};
                     {error, Reason} ->
-                        logger:error("Pgsql query '~p' failed: ~p", [AuthSql, Reason]),
+                        ?LOG(error, "[Postgres] query '~p' failed: ~p", [AuthSql, Reason]),
                         {error, not_found}
                 end,
     case CheckPass of
@@ -49,12 +50,12 @@ check(Credentials = #{password := Password}, #{auth_query  := {AuthSql, AuthPara
                                   auth_result => success}};
         {error, not_found} -> ok;
         {error, ResultCode} ->
-            logger:error("Auth from pgsql failed: ~p", [ResultCode]),
+            ?LOG(error, "[Postgres] Auth from pgsql failed: ~p", [ResultCode]),
             {stop, Credentials#{auth_result => ResultCode}}
     end;
 check(Credentials, Config) ->
     ResultCode = insufficient_credentials,
-    logger:error("Auth from pgsql failed: ~p, Configs: ~p", [ResultCode, Config]),
+    ?LOG(error, "[Postgres] Auth from pgsql failed: ~p, Configs: ~p", [ResultCode, Config]),
     {ok, Credentials#{auth_result => ResultCode}}.
 
 %%--------------------------------------------------------------------
