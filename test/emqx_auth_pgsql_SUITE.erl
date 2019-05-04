@@ -78,14 +78,7 @@ groups() ->
      {auth_pgsql_config, [sequence], [server_config]}].
 
 init_per_suite(Config) ->
-    Apps =
-      [start_apps(App, {SchemaFile, ConfigFile}) ||
-        {App, SchemaFile, ConfigFile}
-            <- [{emqx, local_path("deps/emqx/priv/emqx.schema"),
-                       local_path("deps/emqx/etc/emqx.conf")},
-                {emqx_auth_pgsql, local_path("priv/emqx_auth_pgsql.schema"),
-                                  local_path("etc/emqx_auth_pgsql.conf")}]],
-    ct:log("Apps:~p~n", [Apps]),
+    emqx_ct_helpers:start_apps([emqx, emqx_auth_pgsql], fun set_special_configs/1),
     init_auth_(),
     init_acl_(),
     Config.
@@ -96,34 +89,14 @@ end_per_suite(_Config) ->
     application:stop(emqx_auth_pgsql),
     application:stop(emqx).
 
-get_base_dir() ->
-    {file, Here} = code:is_loaded(?MODULE),
-    filename:dirname(filename:dirname(Here)).
-
-local_path(RelativePath) ->
-    filename:join([get_base_dir(), RelativePath]).
-
-start_apps(App, {SchemaFile, ConfigFile}) ->
-    read_schema_configs(App, {SchemaFile, ConfigFile}),
-    set_special_configs(App),
-    application:ensure_all_started(App).
-
-read_schema_configs(App, {SchemaFile, ConfigFile}) ->
-    ct:pal("Read configs - SchemaFile: ~p, ConfigFile: ~p", [SchemaFile, ConfigFile]),
-    Schema = cuttlefish_schema:files([SchemaFile]),
-    Conf = conf_parse:file(ConfigFile),
-    NewConfig = cuttlefish_generator:map(Schema, Conf),
-    Vals = proplists:get_value(App, NewConfig, []),
-    [application:set_env(App, Par, Value) || {Par, Value} <- Vals].
-
 set_special_configs(emqx) ->
     application:set_env(emqx, acl_nomatch, deny),
     application:set_env(emqx, acl_file,
-                        local_path("deps/emqx/test/emqx_SUITE_data/acl.conf")),
+                        emqx_ct_helpers:deps_path(emqx, "test/emqx_SUITE_data/acl.conf")),
     application:set_env(emqx, allow_anonymous, false),
     application:set_env(emqx, enable_acl_cache, false),
     application:set_env(emqx, plugins_loaded_file,
-                        local_path("deps/emqx/test/emqx_SUITE_data/loaded_plugins"));
+                        emqx_ct_helpers:deps_path(emqx, "test/emqx_SUITE_data/loaded_plugins"));
 set_special_configs(emqx_auth_pgsql) ->
     {ok, Server} = application:get_env(?APP, server),
     application:set_env(?APP, server,

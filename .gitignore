@@ -16,3 +16,4 @@ eunit.coverdata
 _build/
 rebar.lock
 erlang.mk
+*.conf.rendered
