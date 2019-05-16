@@ -72,7 +72,7 @@ all() ->
     ].
 
 groups() ->
-    [{emqx_auth_pgsql_auth, [sequence], [check_auth, list_auth]},
+    [{emqx_auth_pgsql_auth, [sequence], [check_auth]},
      {emqx_auth_pgsql_acl, [sequence], [check_acl, acl_super]},
      {emqx_auth_pgsql, [sequence], [comment_config]},
      {auth_pgsql_config, [sequence], [server_config]}].
@@ -147,16 +147,6 @@ check_auth(_) ->
     {error, _} = emqx_access_control:authenticate(User1#{password => <<"foo">>}),
     {error, not_authorized} = emqx_access_control:authenticate(Bcrypt#{password => <<"password">>}).
 
-list_auth(_Config) ->
-    application:start(emqx_auth_username),
-    emqx_auth_username:add_user(<<"user1">>, <<"password1">>),
-    User1 = #{client_id => <<"client1">>, username => <<"user1">>},
-    {ok, #{auth_result := success}} = emqx_access_control:authenticate(User1#{password => <<"password1">>}),
-    reload([{password_hash, plain}, {auth_query, "select password from mqtt_user_test where username = '%u' limit 1"}]),
-    Plain = #{client_id => <<"client1">>, username => <<"plain">>},
-    {ok, #{is_superuser := true}} = emqx_access_control:authenticate(Plain#{password => <<"plain">>}),
-    application:stop(emqx_auth_username).
-
 init_auth_() ->
     {ok, Pid} = ecpool_worker:client(gproc_pool:pick_worker({ecpool, ?POOL})),
     {ok, [], []} = epgsql:squery(Pid, ?DROP_AUTH_TABLE),
@@ -185,7 +175,7 @@ check_acl(_) ->
     allow = emqx_access_control:check_acl(User5, publish, <<"t1">>).
 
 acl_super(_Config) ->
-    reload([{password_hash, plain}]),
+    reload([{password_hash, plain}, {auth_query, "select password from mqtt_user_test where username = '%u' limit 1"}]),
     {ok, C} = emqx_client:start_link([{host, "localhost"}, {client_id, <<"simpleClient">>},
                                       {username, <<"plain">>}, {password, <<"plain">>}]),
     {ok, _} = emqx_client:connect(C),
