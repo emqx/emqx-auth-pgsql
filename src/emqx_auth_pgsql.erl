@@ -23,15 +23,9 @@
         , description/0
         ]).
 
--define(UNDEFINED(S), (S =:= undefined orelse S =:= <<>>)).
-
 %%--------------------------------------------------------------------
 %% Auth Module Callbacks
 %%--------------------------------------------------------------------
-
-check(Credentials = #{username := Username, password := Password}, _State)
-    when ?UNDEFINED(Username); ?UNDEFINED(Password) ->
-    {ok, Credentials#{auth_result => bad_username_or_password}};
 
 check(Credentials = #{password := Password}, #{auth_query  := {AuthSql, AuthParams},
                                                super_query := SuperQuery,
@@ -47,16 +41,13 @@ check(Credentials = #{password := Password}, #{auth_query  := {AuthSql, AuthPara
                 end,
     case CheckPass of
         ok -> {stop, Credentials#{is_superuser => is_superuser(SuperQuery, Credentials),
+                                  anonymous => false,
                                   auth_result => success}};
         {error, not_found} -> ok;
         {error, ResultCode} ->
             ?LOG(error, "[Postgres] Auth from pgsql failed: ~p", [ResultCode]),
-            {stop, Credentials#{auth_result => ResultCode}}
-    end;
-check(Credentials, Config) ->
-    ResultCode = insufficient_credentials,
-    ?LOG(error, "[Postgres] Auth from pgsql failed: ~p, Configs: ~p", [ResultCode, Config]),
-    {ok, Credentials#{auth_result => ResultCode}}.
+            {stop, Credentials#{auth_result => ResultCode, anonymous => false}}
+    end.
 
 %%--------------------------------------------------------------------
 %% Is Superuser?

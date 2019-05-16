@@ -17,3 +17,4 @@ _build/
 rebar.lock
 erlang.mk
 *.conf.rendered
+.rebar3/
