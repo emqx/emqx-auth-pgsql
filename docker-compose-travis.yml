@@ -1,0 +1,28 @@
+version: '3'
+
+services:
+  erlang:
+    image: erlang:21.3
+    labels: 
+      name: tests
+    volumes:
+      - ./:/emqx_auth_pgsql
+    networks:
+      - emqx-bridge
+    depends_on:
+      - pgsql_server
+    tty: true
+
+  pgsql_server:
+    image: postgres:11 
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: public
+      POSTGRES_USER: root
+      POSTGRES_DB: mqtt
+    networks:
+      - emqx-bridge
+
+networks:
+  emqx-bridge:
+    driver: bridge
