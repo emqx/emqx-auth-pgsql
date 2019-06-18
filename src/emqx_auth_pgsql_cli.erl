@@ -33,7 +33,7 @@
 parse_query(_Par, undefined) ->
     undefined;
 parse_query(Par, Sql) ->
-    case re:run(Sql, "'%[ucad][n]?'", [global, {capture, all, list}]) of
+    case re:run(Sql, "'%[ucCad]'", [global, {capture, all, list}]) of
         {match, Variables} ->
             Params = [Var || [Var] <- Variables],
             {atom_to_list(Par), Params};
