@@ -25,7 +25,7 @@
         ]).
 
 register_metrics() ->
-    [emqx_metrics:new(MetricName) || MetricName <- ['auth.pgsql.succeed', 'auth.pgsql.fail', 'auth.pgsql.ignore']].
+    [emqx_metrics:new(MetricName) || MetricName <- ['auth.pgsql.success', 'auth.pgsql.failure', 'auth.pgsql.ignore']].
 
 %%--------------------------------------------------------------------
 %% Auth Module Callbacks
@@ -45,7 +45,7 @@ check(Credentials = #{password := Password}, #{auth_query  := {AuthSql, AuthPara
                 end,
     case CheckPass of
         ok ->
-            emqx_metrics:inc('auth.pgsql.succeed'),
+            emqx_metrics:inc('auth.pgsql.success'),
             {stop, Credentials#{is_superuser => is_superuser(SuperQuery, Credentials),
                                 anonymous => false,
                                 auth_result => success}};
@@ -53,7 +53,7 @@ check(Credentials = #{password := Password}, #{auth_query  := {AuthSql, AuthPara
             emqx_metrics:inc('auth.pgsql.ignore'), ok;
         {error, ResultCode} ->
             ?LOG(error, "[Postgres] Auth from pgsql failed: ~p", [ResultCode]),
-            emqx_metrics:inc('auth.pgsql.fail'),
+            emqx_metrics:inc('auth.pgsql.failure'),
             {stop, Credentials#{auth_result => ResultCode, anonymous => false}}
     end.
 
