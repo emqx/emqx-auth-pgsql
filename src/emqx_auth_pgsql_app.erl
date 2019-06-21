@@ -16,7 +16,7 @@
 
 -behaviour(application).
 
--emqx_plugin(?MODULE).
+-emqx_plugin(auth).
 
 -include("emqx_auth_pgsql.hrl").
 
@@ -39,9 +39,11 @@ start(_StartType, _StartArgs) ->
         AuthEnv = #{auth_query => AuthQuery,
                     super_query => SuperQuery,
                     hash_type => HashType},
+        emqx_auth_pgsql:register_metrics(),
         ok = emqx:hook('client.authenticate', fun emqx_auth_pgsql:check/2, [AuthEnv])
     end),
     if_enabled(acl_query, fun(AclQuery) ->
+        emqx_acl_pgsql:register_metrics(),
         ok = emqx:hook('client.check_acl', fun emqx_acl_pgsql:check_acl/5, [#{acl_query => AclQuery}])
     end),
     emqx_auth_pgsql_cfg:register(),
