@@ -157,6 +157,17 @@ VALUES
 	(6,1,'127.0.0.1',NULL,NULL,2,'#'),
 	(7,1,NULL,'dashboard',NULL,1,'$SYS/#');
 ```
+**allow:** Client's permission to access a topic. '0' means that the client does not have permission to access the topic, '1' means that the client have permission to access the topic.
+
+**ipaddr:** Client IP address. For all ip addresses it can be '$all' or 'NULL'. 
+
+**username:** Client username. For all users it can be '$all' or 'NULL'. 
+
+**clientid:** Client id. For all client ids it can be '$all' or 'NULL'. 
+	
+**access:** Operations that the client can perform. '1' means that the client can publish to a topic, '2' means that the client can subscribe to a topic, '3' means that the client can subscribe and can publish to a topic.
+
+**topic:** Topic name. Topic wildcards are supported. 
 
 **Notice that only one value allowed for ipaddr, username and clientid fields.**
 
