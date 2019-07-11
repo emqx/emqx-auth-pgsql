@@ -165,7 +165,7 @@ VALUES
 
 **clientid:** Client id. For all client ids it can be '$all' or 'NULL'. 
 	
-**access:** Operations that the client can perform. '1' means that the client can publish to a topic, '2' means that the client can subscribe to a topic, '3' means that the client can subscribe and can publish to a topic.
+**access:** Operations that the client can perform. '1' means that the client can subscribe to a topic, '2' means that the client can publish to a topic, '3' means that the client can subscribe and can publish to a topic.
 
 **topic:** Topic name. Topic wildcards are supported. 
 
