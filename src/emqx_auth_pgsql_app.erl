@@ -40,7 +40,7 @@ start(_StartType, _StartArgs) ->
                     super_query => SuperQuery,
                     hash_type => HashType},
         emqx_auth_pgsql:register_metrics(),
-        ok = emqx:hook('client.authenticate', fun emqx_auth_pgsql:check/2, [AuthEnv])
+        ok = emqx:hook('client.authenticate', fun emqx_auth_pgsql:check/3, [AuthEnv])
     end),
     if_enabled(acl_query, fun(AclQuery) ->
         emqx_acl_pgsql:register_metrics(),
@@ -50,7 +50,7 @@ start(_StartType, _StartArgs) ->
     {ok, Sup}.
 
 stop(_State) ->
-    ok = emqx:unhook('client.authenticate', fun emqx_auth_pgsql:check/2),
+    ok = emqx:unhook('client.authenticate', fun emqx_auth_pgsql:check/3),
     ok = emqx:unhook('client.check_acl', fun emqx_acl_pgsql:check_acl/5),
     emqx_auth_pgsql_cfg:unregister().
 
