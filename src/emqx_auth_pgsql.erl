@@ -20,7 +20,7 @@
 -include_lib("emqx/include/logger.hrl").
 
 -export([ register_metrics/0
-        , check/3
+        , check/2
         , description/0
         ]).
 
@@ -31,10 +31,9 @@ register_metrics() ->
 %% Auth Module Callbacks
 %%--------------------------------------------------------------------
 
-check(Credentials = #{password := Password}, AuthResult,
-      #{auth_query  := {AuthSql, AuthParams},
-        super_query := SuperQuery,
-        hash_type   := HashType}) ->
+check(Credentials = #{password := Password}, #{auth_query  := {AuthSql, AuthParams},
+                                               super_query := SuperQuery,
+                                               hash_type   := HashType}) ->
     CheckPass = case emqx_auth_pgsql_cli:equery(AuthSql, AuthParams, Credentials) of
                     {ok, _, [Record]} ->
                         check_pass(erlang:append_element(Record, Password), HashType);
@@ -47,7 +46,7 @@ check(Credentials = #{password := Password}, AuthResult,
     case CheckPass of
         ok ->
             emqx_metrics:inc('auth.pgsql.success'),
-            {stop, AuthResult#{is_superuser => is_superuser(SuperQuery, Credentials),
+            {stop, Credentials#{is_superuser => is_superuser(SuperQuery, Credentials),
                                 anonymous => false,
                                 auth_result => success}};
         {error, not_found} ->
@@ -55,7 +54,7 @@ check(Credentials = #{password := Password}, AuthResult,
         {error, ResultCode} ->
             ?LOG(error, "[Postgres] Auth from pgsql failed: ~p", [ResultCode]),
             emqx_metrics:inc('auth.pgsql.failure'),
-            {stop, AuthResult#{auth_result => ResultCode, anonymous => false}}
+            {stop, Credentials#{auth_result => ResultCode, anonymous => false}}
     end.
 
 %%--------------------------------------------------------------------
