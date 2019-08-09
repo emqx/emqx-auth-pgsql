@@ -167,7 +167,7 @@ check_acl(_) ->
     User4 = #{zone => external, peername => {{10,10,10,110}, 1}, client_id => <<"c1">>, username => <<"u1">>},
     allow = emqx_access_control:check_acl(User3, subscribe, <<"t1">>),
     allow = emqx_access_control:check_acl(User3, subscribe, <<"t1">>),
-    allow = emqx_access_control:check_acl(User3, subscribe, <<"t2">>),%% nomatch -> ignore -> emqttd acl
+    deny = emqx_access_control:check_acl(User3, subscribe, <<"t2">>),%% nomatch -> ignore -> emqttd acl
     deny = emqx_access_control:check_acl(User4, subscribe, <<"t1">>),%% nomatch -> ignore -> emqttd acl
 
     User5 = #{zone => external, peername => {{127,0,0,1}, 1}, client_id => <<"c3">>, username => <<"u3">>},
