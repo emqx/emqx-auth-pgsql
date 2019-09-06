@@ -1,4 +1,5 @@
-%% Copyright (c) 2013-2019 EMQ Technologies Co., Ltd. All Rights Reserved.
+%%--------------------------------------------------------------------
+%% Copyright (c) 2019 EMQ Technologies Co., Ltd. All Rights Reserved.
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -11,6 +12,7 @@
 %% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
+%%--------------------------------------------------------------------
 
 -module(emqx_auth_pgsql).
 
@@ -24,18 +26,24 @@
         , description/0
         ]).
 
+-define(AUTH_METRICS,
+        ['auth.pgsql.success',
+         'auth.pgsql.failure',
+         'auth.pgsql.ignore'
+        ]).
+
 register_metrics() ->
-    [emqx_metrics:new(MetricName) || MetricName <- ['auth.pgsql.success', 'auth.pgsql.failure', 'auth.pgsql.ignore']].
+    lists:foreach(fun emqx_metrics:new/1, ?AUTH_METRICS).
 
 %%--------------------------------------------------------------------
 %% Auth Module Callbacks
 %%--------------------------------------------------------------------
 
-check(Credentials = #{password := Password}, AuthResult,
+check(Client = #{password := Password}, AuthResult,
       #{auth_query  := {AuthSql, AuthParams},
         super_query := SuperQuery,
         hash_type   := HashType}) ->
-    CheckPass = case emqx_auth_pgsql_cli:equery(AuthSql, AuthParams, Credentials) of
+    CheckPass = case emqx_auth_pgsql_cli:equery(AuthSql, AuthParams, Client) of
                     {ok, _, [Record]} ->
                         check_pass(erlang:append_element(Record, Password), HashType);
                     {ok, _, []} ->
@@ -47,7 +55,7 @@ check(Credentials = #{password := Password}, AuthResult,
     case CheckPass of
         ok ->
             emqx_metrics:inc('auth.pgsql.success'),
-            {stop, AuthResult#{is_superuser => is_superuser(SuperQuery, Credentials),
+            {stop, AuthResult#{is_superuser => is_superuser(SuperQuery, Client),
                                 anonymous => false,
                                 auth_result => success}};
         {error, not_found} ->
@@ -62,11 +70,11 @@ check(Credentials = #{password := Password}, AuthResult,
 %% Is Superuser?
 %%--------------------------------------------------------------------
 
--spec(is_superuser(undefined | {string(), list()}, emqx_types:credentials()) -> boolean()).
-is_superuser(undefined, _Credentials) ->
+-spec(is_superuser(undefined | {string(), list()}, emqx_types:client()) -> boolean()).
+is_superuser(undefined, _Client) ->
     false;
-is_superuser({SuperSql, Params}, Credentials) ->
-    case emqx_auth_pgsql_cli:equery(SuperSql, Params, Credentials) of
+is_superuser({SuperSql, Params}, Client) ->
+    case emqx_auth_pgsql_cli:equery(SuperSql, Params, Client) of
         {ok, [_Super], [{true}]} ->
             true;
         {ok, [_Super], [_False]} ->
@@ -84,3 +92,4 @@ check_pass(Password, HashType) ->
     end.
 
 description() -> "Authentication with PostgreSQL".
+
