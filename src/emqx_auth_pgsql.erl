@@ -32,6 +32,7 @@
          'auth.pgsql.ignore'
         ]).
 
+-spec(register_metrics() -> ok).
 register_metrics() ->
     lists:foreach(fun emqx_metrics:new/1, ?AUTH_METRICS).
 
@@ -39,11 +40,11 @@ register_metrics() ->
 %% Auth Module Callbacks
 %%--------------------------------------------------------------------
 
-check(Client = #{password := Password}, AuthResult,
+check(ClientInfo = #{password := Password}, AuthResult,
       #{auth_query  := {AuthSql, AuthParams},
         super_query := SuperQuery,
         hash_type   := HashType}) ->
-    CheckPass = case emqx_auth_pgsql_cli:equery(AuthSql, AuthParams, Client) of
+    CheckPass = case emqx_auth_pgsql_cli:equery(AuthSql, AuthParams, ClientInfo) of
                     {ok, _, [Record]} ->
                         check_pass(erlang:append_element(Record, Password), HashType);
                     {ok, _, []} ->
@@ -55,7 +56,7 @@ check(Client = #{password := Password}, AuthResult,
     case CheckPass of
         ok ->
             emqx_metrics:inc('auth.pgsql.success'),
-            {stop, AuthResult#{is_superuser => is_superuser(SuperQuery, Client),
+            {stop, AuthResult#{is_superuser => is_superuser(SuperQuery, ClientInfo),
                                 anonymous => false,
                                 auth_result => success}};
         {error, not_found} ->
@@ -73,8 +74,8 @@ check(Client = #{password := Password}, AuthResult,
 -spec(is_superuser(undefined | {string(), list()}, emqx_types:client()) -> boolean()).
 is_superuser(undefined, _Client) ->
     false;
-is_superuser({SuperSql, Params}, Client) ->
-    case emqx_auth_pgsql_cli:equery(SuperSql, Params, Client) of
+is_superuser({SuperSql, Params}, ClientInfo) ->
+    case emqx_auth_pgsql_cli:equery(SuperSql, Params, ClientInfo) of
         {ok, [_Super], [{true}]} ->
             true;
         {ok, [_Super], [_False]} ->
