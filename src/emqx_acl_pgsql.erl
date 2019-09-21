@@ -32,11 +32,12 @@
          'acl.pgsql.ignore'
         ]).
 
+-spec(register_metrics() -> ok).
 register_metrics() ->
     lists:foreach(fun emqx_metrics:new/1, ?ACL_METRICS).
 
-check_acl(Client, PubSub, Topic, NoMatchAction, State) ->
-    case do_check_acl(Client, PubSub, Topic, NoMatchAction, State) of
+check_acl(ClientInfo, PubSub, Topic, NoMatchAction, State) ->
+    case do_check_acl(ClientInfo, PubSub, Topic, NoMatchAction, State) of
         ok -> emqx_metrics:inc('acl.pgsql.ignore'), ok;
         {stop, allow} -> emqx_metrics:inc('acl.pgsql.allow'), {stop, allow};
         {stop, deny} -> emqx_metrics:inc('acl.pgsql.deny'), {stop, deny}
@@ -44,12 +45,12 @@ check_acl(Client, PubSub, Topic, NoMatchAction, State) ->
 
 do_check_acl(#{username := <<$$, _/binary>>}, _PubSub, _Topic, _NoMatchAction, _State) ->
     ok;
-do_check_acl(Client, PubSub, Topic, _NoMatchAction, #{acl_query := {AclSql, AclParams}}) ->
-    case emqx_auth_pgsql_cli:equery(AclSql, AclParams, Client) of
+do_check_acl(ClientInfo, PubSub, Topic, _NoMatchAction, #{acl_query := {AclSql, AclParams}}) ->
+    case emqx_auth_pgsql_cli:equery(AclSql, AclParams, ClientInfo) of
         {ok, _, []} -> ok;
         {ok, _, Rows} ->
             Rules = filter(PubSub, compile(Rows)),
-            case match(Client, Topic, Rules) of
+            case match(ClientInfo, Topic, Rules) of
                 {matched, allow} -> {stop, allow};
                 {matched, deny}  -> {stop, deny};
                 nomatch          -> ok
@@ -59,12 +60,12 @@ do_check_acl(Client, PubSub, Topic, _NoMatchAction, #{acl_query := {AclSql, AclP
             ok
     end.
 
-match(_Client, _Topic, []) ->
+match(_ClientInfo, _Topic, []) ->
     nomatch;
 
-match(Client, Topic, [Rule|Rules]) ->
-    case emqx_access_rule:match(Client, Topic, Rule) of
-        nomatch -> match(Client, Topic, Rules);
+match(ClientInfo, Topic, [Rule|Rules]) ->
+    case emqx_access_rule:match(ClientInfo, Topic, Rule) of
+        nomatch -> match(ClientInfo, Topic, Rules);
         {matched, AllowDeny} -> {matched, AllowDeny}
     end.
 
