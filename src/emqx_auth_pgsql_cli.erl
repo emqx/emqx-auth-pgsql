@@ -96,12 +96,16 @@ replvar(Params, Credentials) ->
 
 replvar([], _Credentials, Acc) ->
     lists:reverse(Acc);
-replvar(["'%u'" | Params], Credentials = #{username := Username}, Acc) ->
-    replvar(Params, Credentials, [Username | Acc]);
-replvar(["'%c'" | Params], Credentials = #{client_id := ClientId}, Acc) ->
-    replvar(Params, Credentials, [ClientId | Acc]);
-replvar(["'%a'" | Params], Credentials = #{peername := {IpAddr, _}}, Acc) ->
-    replvar(Params, Credentials, [inet_parse:ntoa(IpAddr) | Acc]);
+replvar(["'%u'" | Params], Credentials, Acc) ->
+    replvar(Params, Credentials, [safe_get(username, Credentials) | Acc]);
+replvar(["'%c'" | Params], Credentials, Acc) ->
+    replvar(Params, Credentials, [safe_get(client_id, Credentials) | Acc]);
+replvar(["'%a'" | Params], Credentials, Acc) ->
+    IpAddr = case maps:get(peername, Credentials, undefined) of
+                 {Ip, _} -> inet_parse:ntoa(Ip);
+                 _ -> <<"undefined">>
+             end,
+    replvar(Params, Credentials, [IpAddr | Acc]);
 replvar(["'%C'" | Params], Credentials, Acc) ->
     replvar(Params, Credentials, [safe_get(cn, Credentials)| Acc]);
 replvar(["'%d'" | Params], Credentials, Acc) ->
