@@ -76,7 +76,7 @@ all() ->
 groups() ->
     [{emqx_auth_pgsql_auth, [sequence], [check_auth]},
      {emqx_auth_pgsql_acl, [sequence], [check_acl, acl_super]},
-     {emqx_auth_pgsql, [sequence], [comment_config]},
+     {emqx_auth_pgsql, [sequence], [comment_config, placeholders]},
      {auth_pgsql_config, [sequence], [server_config]}].
 
 init_per_suite(Config) ->
@@ -121,6 +121,26 @@ comment_config(_) ->
     ?assertEqual([], emqx_hooks:lookup('client.authenticate')),
     ?assertEqual(AuthCount - 1, length(emqx_hooks:lookup('client.authenticate'))),
     ?assertEqual(AclCount - 1, length(emqx_hooks:lookup('client.check_acl'))).
+
+placeholders(_) ->
+    ClientA = #{username => <<"plain">>, client_id => <<"plain">>},
+
+    reload([{password_hash, plain},
+            {auth_query, "select password from mqtt_user_test where username = '%u' and 'a_cn_val' = '%C' limit 1"}]),
+    {error, not_authorized} =
+        emqx_access_control:authenticate(ClientA#{password => <<"plain">>}),
+    {error, not_authorized} =
+        emqx_access_control:authenticate(ClientA#{password => <<"plain">>, cn => undefined}),
+    {ok, _} =
+        emqx_access_control:authenticate(ClientA#{password => <<"plain">>, cn => <<"a_cn_val">>}),
+
+    reload([{auth_query, "select password from mqtt_user_test where username = '%u' and 'a_dn_val' = '%d' limit 1"}]),
+    {error, not_authorized} =
+        emqx_access_control:authenticate(ClientA#{password => <<"plain">>}),
+    {error, not_authorized} =
+        emqx_access_control:authenticate(ClientA#{password => <<"plain">>, dn => undefined}),
+    {ok, _} =
+        emqx_access_control:authenticate(ClientA#{password => <<"plain">>, dn => <<"a_dn_val">>}).
 
 check_auth(_) ->
     Plain = #{clientid => <<"client1">>, username => <<"plain">>},
