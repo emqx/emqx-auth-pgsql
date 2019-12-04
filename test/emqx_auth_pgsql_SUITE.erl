@@ -123,7 +123,7 @@ comment_config(_) ->
     ?assertEqual(AclCount - 1, length(emqx_hooks:lookup('client.check_acl'))).
 
 placeholders(_) ->
-    ClientA = #{username => <<"plain">>, client_id => <<"plain">>},
+    ClientA = #{username => <<"plain">>, clientid => <<"plain">>},
 
     reload([{password_hash, plain},
             {auth_query, "select password from mqtt_user_test where username = '%u' and 'a_cn_val' = '%C' limit 1"}]),
@@ -134,7 +134,7 @@ placeholders(_) ->
     {ok, _} =
         emqx_access_control:authenticate(ClientA#{password => <<"plain">>, cn => <<"a_cn_val">>}),
 
-    reload([{auth_query, "select password from mqtt_user_test where username = '%u' and 'a_dn_val' = '%d' limit 1"}]),
+    reload([{auth_query, "select password from mqtt_user_test where username = '%c' and 'a_dn_val' = '%d' limit 1"}]),
     {error, not_authorized} =
         emqx_access_control:authenticate(ClientA#{password => <<"plain">>}),
     {error, not_authorized} =
