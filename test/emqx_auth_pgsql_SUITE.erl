@@ -123,7 +123,7 @@ comment_config(_) ->
     ?assertEqual(AclCount - 1, length(emqx_hooks:lookup('client.check_acl'))).
 
 placeholders(_) ->
-    ClientA = #{username => <<"plain">>, clientid => <<"plain">>},
+    ClientA = #{username => <<"plain">>, clientid => <<"plain">>, zone => external},
 
     reload([{password_hash, plain},
             {auth_query, "select password from mqtt_user_test where username = '%u' and 'a_cn_val' = '%C' limit 1"}]),
@@ -143,14 +143,14 @@ placeholders(_) ->
         emqx_access_control:authenticate(ClientA#{password => <<"plain">>, dn => <<"a_dn_val">>}).
 
 check_auth(_) ->
-    Plain = #{clientid => <<"client1">>, username => <<"plain">>},
-    Md5 = #{clientid => <<"md5">>, username => <<"md5">>},
-    Sha = #{clientid => <<"sha">>, username => <<"sha">>},
-    Sha256 = #{clientid => <<"sha256">>, username => <<"sha256">>},
-    Pbkdf2 = #{clientid => <<"pbkdf2_password">>, username => <<"pbkdf2_password">>},
-    BcryptFoo = #{clientid => <<"bcrypt_foo">>, username => <<"bcrypt_foo">>},
-    User1 = #{clientid => <<"bcrypt_foo">>, username => <<"user">>},
-    Bcrypt = #{clientid => <<"bcrypt">>, username => <<"bcrypt">>},
+    Plain = #{clientid => <<"client1">>, username => <<"plain">>, zone => external},
+    Md5 = #{clientid => <<"md5">>, username => <<"md5">>, zone => external},
+    Sha = #{clientid => <<"sha">>, username => <<"sha">>, zone => external},
+    Sha256 = #{clientid => <<"sha256">>, username => <<"sha256">>, zone => external},
+    Pbkdf2 = #{clientid => <<"pbkdf2_password">>, username => <<"pbkdf2_password">>, zone => external},
+    BcryptFoo = #{clientid => <<"bcrypt_foo">>, username => <<"bcrypt_foo">>, zone => external},
+    User1 = #{clientid => <<"bcrypt_foo">>, username => <<"user">>, zone => external},
+    Bcrypt = #{clientid => <<"bcrypt">>, username => <<"bcrypt">>, zone => external},
     reload([{password_hash, plain}]),
     {ok, #{is_superuser := true}} = emqx_access_control:authenticate(Plain#{password => <<"plain">>}),
     reload([{password_hash, md5}]),
