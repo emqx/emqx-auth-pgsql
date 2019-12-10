@@ -48,13 +48,11 @@ start(_StartType, _StartArgs) ->
         ok = emqx_acl_pgsql:register_metrics(),
         ok = emqx:hook('client.check_acl', fun emqx_acl_pgsql:check_acl/5, [#{acl_query => AclQuery}])
     end),
-    emqx_auth_pgsql_cfg:register(),
     {ok, Sup}.
 
 stop(_State) ->
     ok = emqx:unhook('client.authenticate', fun emqx_auth_pgsql:check/3),
-    ok = emqx:unhook('client.check_acl', fun emqx_acl_pgsql:check_acl/5),
-    emqx_auth_pgsql_cfg:unregister().
+    ok = emqx:unhook('client.check_acl', fun emqx_acl_pgsql:check_acl/5).
 
 if_enabled(Par, Fun) ->
     case application:get_env(?APP, Par) of
