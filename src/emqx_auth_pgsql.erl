@@ -26,12 +26,6 @@
         , description/0
         ]).
 
--define(AUTH_METRICS,
-        ['auth.pgsql.success',
-         'auth.pgsql.failure',
-         'auth.pgsql.ignore'
-        ]).
-
 -spec(register_metrics() -> ok).
 register_metrics() ->
     lists:foreach(fun emqx_metrics:new/1, ?AUTH_METRICS).
@@ -55,15 +49,15 @@ check(ClientInfo = #{password := Password}, AuthResult,
                 end,
     case CheckPass of
         ok ->
-            emqx_metrics:inc('auth.pgsql.success'),
+            emqx_metrics:inc(?AUTH_METRICS(success)),
             {stop, AuthResult#{is_superuser => is_superuser(SuperQuery, ClientInfo),
                                 anonymous => false,
                                 auth_result => success}};
         {error, not_found} ->
-            emqx_metrics:inc('auth.pgsql.ignore'), ok;
+            emqx_metrics:inc(?AUTH_METRICS(ignore)), ok;
         {error, ResultCode} ->
             ?LOG(error, "[Postgres] Auth from pgsql failed: ~p", [ResultCode]),
-            emqx_metrics:inc('auth.pgsql.failure'),
+            emqx_metrics:inc(?AUTH_METRICS(failure)),
             {stop, AuthResult#{auth_result => ResultCode, anonymous => false}}
     end.
 
