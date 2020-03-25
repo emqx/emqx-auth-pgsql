@@ -21,6 +21,7 @@
 -include("emqx_auth_pgsql.hrl").
 
 -include_lib("emqx/include/emqx.hrl").
+-include_lib("emqx/include/logger.hrl").
 
 -export([connect/1]).
 -export([parse_query/2]).
@@ -57,18 +58,34 @@ connect(Opts) ->
     Host     = proplists:get_value(host, Opts),
     Username = proplists:get_value(username, Opts),
     Password = proplists:get_value(password, Opts),
-    {ok, C} = epgsql:connect(Host, Username, Password, conn_opts(Opts)),
+    case epgsql:connect(Host, Username, Password, conn_opts(Opts)) of
+        {ok, C} ->
+            conn_post(C),
+            {ok, C};
+        {error, Reason = econnrefused} ->
+            ?LOG(error, "[Postgres] Can't connect to Postgres serve: Connection refused."),
+            {error, Reason};
+        {error, Reason = invalid_authorization_specification} ->
+            ?LOG(error, "[Postgres] Can't connect to Postgres serve: Invalid authorization specification."),
+            {error, Reason};
+        {error, Reason = invalid_password} ->
+            ?LOG(error, "[Postgres] Can't connect to Postgres serve: Invalid password."),
+            {error, Reason};
+        {error, Reason} ->
+            ?LOG(error, "[Postgres] Can't connect to Postgres serve:: ~p", [Reason]),
+            {error, Reason}
+    end.
+
+conn_post(Connection) ->
     lists:foreach(fun(Par) ->
         Sql0 = application:get_env(?APP, Par, undefined),
         case parse_query(Par, Sql0) of
             undefined -> ok;
             {_, Params} ->
                 Sql = pgvar(Sql0, Params),
-                epgsql:parse(C, atom_to_list(Par), Sql, [])
+                epgsql:parse(Connection, atom_to_list(Par), Sql, [])
         end
-    end,  [auth_query, acl_query, super_query]),
-    {ok, C}.
-
+    end,  [auth_query, acl_query, super_query]).
 
 conn_opts(Opts) ->
     conn_opts(Opts, []).
