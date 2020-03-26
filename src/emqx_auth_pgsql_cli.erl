@@ -63,16 +63,16 @@ connect(Opts) ->
             conn_post(C),
             {ok, C};
         {error, Reason = econnrefused} ->
-            ?LOG(error, "[Postgres] Can't connect to Postgres serve: Connection refused."),
+            ?LOG(error, "[Postgres] Can't connect to Postgres server: Connection refused."),
             {error, Reason};
         {error, Reason = invalid_authorization_specification} ->
-            ?LOG(error, "[Postgres] Can't connect to Postgres serve: Invalid authorization specification."),
+            ?LOG(error, "[Postgres] Can't connect to Postgres server: Invalid authorization specification."),
             {error, Reason};
         {error, Reason = invalid_password} ->
-            ?LOG(error, "[Postgres] Can't connect to Postgres serve: Invalid password."),
+            ?LOG(error, "[Postgres] Can't connect to Postgres server: Invalid password."),
             {error, Reason};
         {error, Reason} ->
-            ?LOG(error, "[Postgres] Can't connect to Postgres serve:: ~p", [Reason]),
+            ?LOG(error, "[Postgres] Can't connect to Postgres server: ~p", [Reason]),
             {error, Reason}
     end.
 
