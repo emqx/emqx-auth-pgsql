@@ -180,6 +180,7 @@ drop_auth_() ->
     {ok, [], []} = epgsql:squery(Pid, ?DROP_AUTH_TABLE).
 
 check_acl(_) ->
+    emqx_modules:load_module(emqx_mod_acl_internal, false),
     User1 = #{zone => external, peerhost => {127,0,0,1}, clientid => <<"c1">>, username => <<"u1">>},
     User2 = #{zone => external, peerhost => {127,0,0,1}, clientid => <<"c2">>, username => <<"u2">>},
     allow = emqx_access_control:check_acl(User1, subscribe, <<"t1">>),
