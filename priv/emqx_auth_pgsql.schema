@@ -69,16 +69,21 @@
                         {certfile,   cuttlefish:conf_get(Prefix ++ ".certfile", Conf, undefined)},
                         {cacertfile, cuttlefish:conf_get(Prefix ++ ".cacertfile", Conf, undefined)}])
             end,
-  [{pool_size, Pool},
-   {auto_reconnect, 1},
-   {host, PgHost},
-   {port, PgPort},
-   {username, Username},
-   {password, Passwd},
-   {database, DB},
-   {encoding, Encoding},
-   {ssl, Ssl},
-   {ssl_opts, SslOpts("auth.pgsql.ssl_opts")}]
+  Options = [{pool_size, Pool},
+             {auto_reconnect, 1},
+             {host, PgHost},
+             {port, PgPort},
+             {username, Username},
+             {password, Passwd},
+             {database, DB},
+             {encoding, Encoding}],
+  case Ssl of
+       true ->
+          Options ++ [{ssl, Ssl}, {ssl_opts, SslOpts("auth.pgsql.ssl_opts")}];
+       false ->
+          Options
+  end
+
 end}.
 
 {mapping, "auth.pgsql.auth_query", "emqx_auth_pgsql.auth_query", [
