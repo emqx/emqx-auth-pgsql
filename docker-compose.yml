@@ -2,7 +2,7 @@ version: '3'
 
 services:
   erlang:
-    image: erlang:21.3
+    image: erlang:22.3
     volumes:
       - ./:/emqx_auth_pgsql
     networks:
@@ -12,7 +12,7 @@ services:
     tty: true
 
   pgsql_server:
-    image: postgres:11 
+    image: ${PGSQL_IMAGE}
     restart: always
     environment:
       POSTGRES_PASSWORD: public
