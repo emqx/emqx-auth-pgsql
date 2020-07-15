@@ -5,7 +5,16 @@ on: [push, pull_request]
 jobs:    
     run_test_cases:
         runs-on: ubuntu-latest
-      
+ 
+        strategy:
+            matrix:
+                pgsql_image:
+                    - postgres:9
+                    - postgres:10
+                    - postgres:11
+                    - postgres:12
+                    - postgres:13
+ 
         steps:
             - name: install docker-compose
               run: | 
@@ -13,6 +22,8 @@ jobs:
                 sudo chmod +x /usr/local/bin/docker-compose
             - uses: actions/checkout@v1
             - name: run test cases
+              env:
+                 PGSQL_IMAGE: ${{ matrix.pgsql_image }}
               run: |
                 docker-compose -f ./docker-compose.yml -p tests up -d 
                 docker exec -i $(docker ps -a -f name=tests_erlang_1 -q) sh -c "sed -i '/auth.pgsql.server/c auth.pgsql.server = pgsql_server:5432' /emqx_auth_pgsql/etc/emqx_auth_pgsql.conf"
@@ -23,10 +34,10 @@ jobs:
             - uses: actions/upload-artifact@v1
               if: always()
               with:
-                name: logs
+                name: logs_for_${{ matrix.pgsql_image }}
                 path: _build/test/logs
             - uses: actions/upload-artifact@v1
               with:
-                name: cover
+                name: cover_for_${{ matrix.pgsql_image }}
                 path: _build/test/cover
 
