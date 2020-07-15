@@ -1,4 +1,4 @@
-sh ersion: '3'
+version: '3'
 
 services:
   erlang:
