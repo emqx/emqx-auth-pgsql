@@ -29,9 +29,9 @@
 -include_lib("common_test/include/ct.hrl").
 
 %%setp1 init table
--define(DROP_ACL_TABLE, "DROP TABLE IF EXISTS mqtt_acl_test").
+-define(DROP_ACL_TABLE, "DROP TABLE IF EXISTS mqtt_acl").
 
--define(CREATE_ACL_TABLE, "CREATE TABLE mqtt_acl_test (
+-define(CREATE_ACL_TABLE, "CREATE TABLE mqtt_acl (
                            id SERIAL primary key,
                            allow integer,
                            ipaddr character varying(60),
@@ -40,23 +40,23 @@
                            access  integer,
                            topic character varying(100))").
 
--define(INIT_ACL, "INSERT INTO mqtt_acl_test (id, allow, ipaddr, username, clientid, access, topic)
+-define(INIT_ACL, "INSERT INTO mqtt_acl (id, allow, ipaddr, username, clientid, access, topic)
                    VALUES
                    (1,1,'127.0.0.1','u1','c1',1,'t1'),
                    (2,0,'127.0.0.1','u2','c2',1,'t1'),
                    (3,1,'10.10.0.110','u1','c1',1,'t1'),
                    (4,1,'127.0.0.1','u3','c3',3,'t1')").
 
--define(DROP_AUTH_TABLE, "DROP TABLE IF EXISTS mqtt_user_test").
+-define(DROP_AUTH_TABLE, "DROP TABLE IF EXISTS mqtt_user").
 
--define(CREATE_AUTH_TABLE, "CREATE TABLE mqtt_user_test (
+-define(CREATE_AUTH_TABLE, "CREATE TABLE mqtt_user (
                             id SERIAL primary key,
                             is_superuser boolean,
                             username character varying(100),
                             password character varying(100),
                             salt character varying(40))").
 
--define(INIT_AUTH, "INSERT INTO mqtt_user_test (id, is_superuser, username, password, salt)
+-define(INIT_AUTH, "INSERT INTO mqtt_user (id, is_superuser, username, password, salt)
                      VALUES
                      (1, true, 'plain', 'plain', 'salt'),
                      (2, false, 'md5', '1bc29b36f623ba82aaf6724fd3b16718', 'salt'),
@@ -114,8 +114,9 @@ set_special_configs(_) ->
          {password, "public"},
          {database, "mqtt"},
          {encoding, utf8},
-         {ssl, false}],
+         {ssl, true}],
     application:set_env(emqx, allow_anonymous, false),
+    application:set_env(emqx, enable_acl_cache, false),
     application:set_env(emqx_auth_pgsql, server, Cfg),
     application:set_env(emqx, plugins_loaded_file,
                         emqx_ct_helpers:deps_path(emqx, "test/emqx_SUITE_data/loaded_plugins")).
@@ -143,16 +144,18 @@ placeholders(_) ->
     {ok, _} =
         emqx_access_control:authenticate(ClientA#{password => <<"plain">>, cn => <<"a_cn_val">>}),
 
-    reload([{auth_query, "select password from mqtt_user_test where username = '%c' and 'a_dn_val' = '%d' limit 1"}]),
+    reload([{auth_query, "select password from mqtt_user where username = '%c' and 'a_dn_val' = '%d' limit 1"}]),
     {error, not_authorized} =
         emqx_access_control:authenticate(ClientA#{password => <<"plain">>}),
     {error, not_authorized} =
         emqx_access_control:authenticate(ClientA#{password => <<"plain">>, dn => undefined}),
-    {error, _} =
+    {ok, _} =
         emqx_access_control:authenticate(ClientA#{password => <<"plain">>, dn => <<"a_dn_val">>}).
 
 
 check_auth(_) ->
+    init_auth_(),
+    init_acl_(),
     Plain = #{clientid => <<"client1">>, username => <<"plain">>, zone => external},
     Md5 = #{clientid => <<"md5">>, username => <<"md5">>, zone => external},
     Sha = #{clientid => <<"sha">>, username => <<"sha">>, zone => external},
@@ -163,32 +166,31 @@ check_auth(_) ->
     Bcrypt = #{clientid => <<"bcrypt">>, username => <<"bcrypt">>, zone => external},
     BcryptWrong = #{clientid => <<"bcrypt_wrong">>, username => <<"bcrypt_wrong">>, zone => external},
     reload([{password_hash, plain}]),
-    {ok,#{is_superuser := true}} =
+    {ok, #{is_superuser := true}} =
         emqx_access_control:authenticate(Plain#{password => <<"plain">>}),
     reload([{password_hash, md5}]),
-    {ok,#{is_superuser := false}} =
+    {ok, #{is_superuser := false}} =
         emqx_access_control:authenticate(Md5#{password => <<"md5">>}),
     reload([{password_hash, sha}]),
-    {ok,#{is_superuser := false}} =
+    {ok, #{is_superuser := false}} =
         emqx_access_control:authenticate(Sha#{password => <<"sha">>}),
     reload([{password_hash, sha256}]),
-    {ok,#{is_superuser := false}} =
+    {ok, #{is_superuser := false}} =
         emqx_access_control:authenticate(Sha256#{password => <<"sha256">>}),
     reload([{password_hash, bcrypt}]),
-    {ok,#{is_superuser := false}} =
+    {ok, #{is_superuser := false}} =
         emqx_access_control:authenticate(Bcrypt#{password => <<"password">>}),
     {error, not_authorized} =
         emqx_access_control:authenticate(BcryptWrong#{password => <<"password">>}),
     %%pbkdf2 sha
     reload([{password_hash, {pbkdf2, sha, 1, 16}},
-            {auth_query, "select password, salt from mqtt_user_test where username = '%u' limit 1"}]),
+            {auth_query, "select password, salt from mqtt_user where username = '%u' limit 1"}]),
     R1 = emqx_access_control:authenticate(Pbkdf2#{password => <<"password">>}),
     reload([{password_hash, {salt, bcrypt}}]),
     R2 = emqx_access_control:authenticate(BcryptFoo#{password => <<"foo">>}),
     io:format("R1:~p R2~p~n",[R1, R2]),
     {error, _} = emqx_access_control:authenticate(User1#{password => <<"foo">>}),
     {error, not_authorized} = emqx_access_control:authenticate(BcryptWrong#{password => <<"password">>}).
-
 
 init_auth_() ->
     {ok, Pid} = ecpool_worker:client(gproc_pool:pick_worker({ecpool, ?POOL})),
@@ -205,7 +207,7 @@ check_acl(_) ->
     User1 = #{zone => external, peerhost => {127,0,0,1}, clientid => <<"c1">>, username => <<"u1">>},
     User2 = #{zone => external, peerhost => {127,0,0,1}, clientid => <<"c2">>, username => <<"u2">>},
     allow = emqx_access_control:check_acl(User1, subscribe, <<"t1">>),
-    allow = emqx_access_control:check_acl(User2, subscribe, <<"t1">>),
+    deny = emqx_access_control:check_acl(User2, subscribe, <<"t1">>),
     User3 = #{zone => external, peerhost => {10,10,0,110}, clientid => <<"c1">>, username => <<"u1">>},
     User4 = #{zone => external, peerhost => {10,10,10,110}, clientid => <<"c1">>, username => <<"u1">>},
     allow = emqx_access_control:check_acl(User3, subscribe, <<"t1">>),
@@ -215,7 +217,8 @@ check_acl(_) ->
 
     User5 = #{zone => external, peerhost => {127,0,0,1}, clientid => <<"c3">>, username => <<"u3">>},
     allow = emqx_access_control:check_acl(User5, subscribe, <<"t1">>),
-    allow = emqx_access_control:check_acl(User5, publish, <<"t1">>).
+    allow = emqx_access_control:check_acl(User5, publish, <<"t1">>),
+    drop_acl_().
 
 acl_super(_Config) ->
     reload([{password_hash, plain}, {auth_query, "select password from mqtt_user where username = '%u' limit 1"}]),
@@ -243,7 +246,7 @@ server_config(_) ->
          {auto_reconnect, 1},
          {username, "admin"},
          {password, "public"},
-         {database, "sercrit"},
+         {database, "mqtt"},
          {encoding, utf8},
          {ssl, false},
          {ssl_opts,[]}],
