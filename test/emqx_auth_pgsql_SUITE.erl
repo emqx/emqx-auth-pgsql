@@ -29,9 +29,9 @@
 -include_lib("common_test/include/ct.hrl").
 
 %%setp1 init table
--define(DROP_ACL_TABLE, "DROP TABLE IF EXISTS mqtt_acl_test").
+-define(DROP_ACL_TABLE, "DROP TABLE IF EXISTS mqtt_acl").
 
--define(CREATE_ACL_TABLE, "CREATE TABLE mqtt_acl_test (
+-define(CREATE_ACL_TABLE, "CREATE TABLE mqtt_acl (
                            id SERIAL primary key,
                            allow integer,
                            ipaddr character varying(60),
@@ -40,23 +40,23 @@
                            access  integer,
                            topic character varying(100))").
 
--define(INIT_ACL, "INSERT INTO mqtt_acl_test (id, allow, ipaddr, username, clientid, access, topic)
+-define(INIT_ACL, "INSERT INTO mqtt_acl (id, allow, ipaddr, username, clientid, access, topic)
                    VALUES
                    (1,1,'127.0.0.1','u1','c1',1,'t1'),
                    (2,0,'127.0.0.1','u2','c2',1,'t1'),
                    (3,1,'10.10.0.110','u1','c1',1,'t1'),
                    (4,1,'127.0.0.1','u3','c3',3,'t1')").
 
--define(DROP_AUTH_TABLE, "DROP TABLE IF EXISTS mqtt_user_test").
+-define(DROP_AUTH_TABLE, "DROP TABLE IF EXISTS mqtt_user").
 
--define(CREATE_AUTH_TABLE, "CREATE TABLE mqtt_user_test (
+-define(CREATE_AUTH_TABLE, "CREATE TABLE mqtt_user (
                             id SERIAL primary key,
                             is_superuser boolean,
                             username character varying(100),
                             password character varying(100),
                             salt character varying(40))").
 
--define(INIT_AUTH, "INSERT INTO mqtt_user_test (id, is_superuser, username, password, salt)
+-define(INIT_AUTH, "INSERT INTO mqtt_user (id, is_superuser, username, password, salt)
                      VALUES
                      (1, true, 'plain', 'plain', 'salt'),
                      (2, false, 'md5', '1bc29b36f623ba82aaf6724fd3b16718', 'salt'),
@@ -96,11 +96,13 @@ end_per_suite(_) ->
 
 set_special_configs_ssl(emqx_auth_pgsql) ->
     Cfg = application:get_env(emqx_auth_pgsql, server, []),
-    Path = emqx_ct_helpers:deps_path(emqx_auth_pgsql, "test/emqx_auth_pgsql_SUITE_data/"),
-    SslCfg = [{ssl, {server_name_indication, disable},
-                    {cacertfile, Path ++ "ca.pem"},
-                    {certfile, Path ++ "client-cert.pem"},
-                    {keyfile, Path ++ "client-key.pem"}}],
+    SslCfg = [{ssl_opts,
+                    [{cacertfile, emqx_ct_helpers:deps_path(emqx_auth_pgsql,
+                                                            "test/emqx_auth_pgsql_SUITE_data/ca.pem")},
+                     {certfile, emqx_ct_helpers:deps_path(emqx_auth_pgsql,
+                                                          "test/emqx_auth_pgsql_SUITE_data/client-cert.pem")},
+                     {keyfile, emqx_ct_helpers:deps_path(emqx_auth_pgsql,
+                                                         "test/emqx_auth_pgsql_SUITE_data/client-key.pem")}]}],
     application:set_env(emqx_auth_pgsql, server, Cfg ++ SslCfg);
 
 set_special_configs_ssl(emqx) ->
