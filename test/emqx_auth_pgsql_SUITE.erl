@@ -96,7 +96,8 @@ end_per_suite(_) ->
 
 set_special_configs_ssl(emqx_auth_pgsql) ->
     Cfg = application:get_env(emqx_auth_pgsql, server, []),
-    SslCfg = [{ssl_opts,
+    io:format("====>CFG:~p~n", [Cfg]),
+    SslCfg = [{ssl, true}, {ssl_opts,
                     [{cacertfile, emqx_ct_helpers:deps_path(emqx_auth_pgsql,
                                                             "test/emqx_auth_pgsql_SUITE_data/ca.pem")},
                      {certfile, emqx_ct_helpers:deps_path(emqx_auth_pgsql,

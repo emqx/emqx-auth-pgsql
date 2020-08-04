@@ -14,6 +14,8 @@ services:
   pgsql_server:
     image: postgres:11 
     restart: always
+    ports: 
+      - 5432:5432
     environment:
       POSTGRES_PASSWORD: public
       POSTGRES_USER: root
