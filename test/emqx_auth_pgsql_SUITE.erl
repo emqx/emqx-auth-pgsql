@@ -99,7 +99,10 @@ end_per_suite(_) ->
     ok.
 
 set_special_configs_ssl(emqx_auth_pgsql) ->
-    reload([{ssl, true}]);
+    reload([{ssl, true}]),
+    reload([{"ssl_opts.keyfile", "/emqx_auth_pgsql/test/emqx_auth_pgsql_SUITE_data/ca.pem"}]),
+    reload([{"ssl_opts.certfile", "/emqx_auth_pgsql/test/emqx_auth_pgsql_SUITE_data/ca.permissions"}]),
+    reload([{"ssl_opts.cacertfile", "/emqx_auth_pgsql/test/emqx_auth_pgsql_SUITE_data/ca.pem"}]);
 
 set_special_configs_ssl(emqx) ->
     set_special_configs(emqx).

@@ -21,7 +21,6 @@ jobs:
                 docker exec -i $(docker ps -a -f name=tests_erlang_1 -q) sh -c "echo auth.pgsql.ssl_opts.keyfile = /emqx_auth_pgsql/test/emqx_auth_pgsql_SUITE_data/ca.pem >> /emqx_auth_pgsql/etc/emqx_auth_pgsql.conf"
                 docker exec -i $(docker ps -a -f name=tests_erlang_1 -q) sh -c "echo auth.pgsql.ssl_opts.certfile = /emqx_auth_pgsql/test/emqx_auth_pgsql_SUITE_data/client-cert.pem >> /emqx_auth_pgsql/etc/emqx_auth_pgsql.conf"
                 docker exec -i $(docker ps -a -f name=tests_erlang_1 -q) sh -c "echo auth.pgsql.ssl_opts.cacertfile = /emqx_auth_pgsql/test/emqx_auth_pgsql_SUITE_data/client-key.pem >> /emqx_auth_pgsql/etc/emqx_auth_pgsql.conf"
-                docker exec -i $(docker ps -a -f name=tests_erlang_1 -q) sh -c "echo /emqx_auth_pgsql/etc/emqx_auth_pgsql.conf"
                 
                 docker exec -i tests_erlang_1 sh -c "make -C /emqx_auth_pgsql xref"
                 docker exec -i tests_erlang_1 sh -c "make -C /emqx_auth_pgsql eunit"
