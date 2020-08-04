@@ -67,29 +67,39 @@
                      (7, false, 'bcrypt', '$2y$16$rEVsDarhgHYB0TGnDFJzyu5f.T.Ha9iXMTk9J36NCMWWM7O16qyaK', 'salt')").
 
 all() ->
-    [{group, emqx_auth_pgsql_auth},
-     {group, emqx_auth_pgsql_acl},
-     {group, emqx_auth_pgsql}
-     %{group, auth_pgsql_config}
-    ].
+    [{group, ssl}, {group, nossl}].
 
 groups() ->
-    [{emqx_auth_pgsql_auth, [sequence], [check_auth]},
-     {emqx_auth_pgsql_acl, [sequence], [check_acl, acl_super]},
-     {emqx_auth_pgsql, [sequence], [comment_config, placeholders]},
-     {auth_pgsql_config, [sequence], [server_config]}].
+    Cases = emqx_ct:all(?MODULE),
+    [{ssl, [sequence], Cases}, {nossl, [sequence], Cases}].
 
-init_per_suite(Config) ->
-    emqx_ct_helpers:start_apps([emqx, emqx_auth_pgsql], fun set_special_configs/1),
+init_per_group(Name, Config) ->
+    case Name of
+      ssl ->
+        emqx_ct_helpers:start_apps([emqx_auth_pgsql], fun set_special_configs_ssl/1);
+      nossl ->
+        emqx_ct_helpers:start_apps([emqx_auth_pgsql], fun set_special_configs/1)
+    end,
     init_auth_(),
     init_acl_(),
     Config.
 
-end_per_suite(_Config) ->
+end_per_group(_, Config) ->
     drop_auth_(),
     drop_acl_(),
-    application:stop(emqx_auth_pgsql),
-    application:stop(emqx).
+    emqx_ct_helpers:stop_apps([emqx_auth_pgsql]),
+    Config.
+
+set_special_configs_ssl(Name) ->
+    Server = application:get_env(?APP, server, []),
+    Path = emqx_ct_helpers:deps_path(emqx_auth_pgsql, "test/emqx_auth_pgsql_SUITE_data/"),
+    Sslopts = [{keyfile, Path ++ "/client-key.pem"},
+               {certfile, Path ++ "/client-cert.pem"},
+               {cacertfile, Path ++ "/ca.pem"}],
+    Temp = lists:keyreplace(ssl, 1, Server, {ssl, true}),
+    application:set_env(?APP, server, Temp),
+    application:set_env(?APP, server, lists:keyreplace(ssl_opts, 1, Temp, {ssl_opts, Sslopts})),
+    set_special_configs(Name).
 
 set_special_configs(emqx) ->
     application:set_env(emqx, acl_nomatch, deny),
@@ -99,8 +109,9 @@ set_special_configs(emqx) ->
     application:set_env(emqx, enable_acl_cache, false),
     application:set_env(emqx, plugins_loaded_file,
                         emqx_ct_helpers:deps_path(emqx, "test/emqx_SUITE_data/loaded_plugins"));
+
 set_special_configs(emqx_auth_pgsql) ->
-    {ok, Server} = application:get_env(?APP, server),
+    Server = application:get_env(?APP, server, []),
     application:set_env(?APP, server,
                         lists:keyreplace(password,
                                          1,
@@ -112,7 +123,7 @@ set_special_configs(emqx_auth_pgsql) ->
 set_special_configs(_App) ->
     ok.
 
-comment_config(_) ->
+t_comment_config(_) ->
     AuthCount = length(emqx_hooks:lookup('client.authenticate')),
     AclCount = length(emqx_hooks:lookup('client.check_acl')),
     application:stop(?APP),
@@ -122,9 +133,8 @@ comment_config(_) ->
     ?assertEqual(AuthCount - 1, length(emqx_hooks:lookup('client.authenticate'))),
     ?assertEqual(AclCount - 1, length(emqx_hooks:lookup('client.check_acl'))).
 
-placeholders(_) ->
+t_placeholders(_) ->
     ClientA = #{username => <<"plain">>, clientid => <<"plain">>, zone => external},
-
     reload([{password_hash, plain},
             {auth_query, "select password from mqtt_user_test where username = '%u' and 'a_cn_val' = '%C' limit 1"}]),
     {error, not_authorized} =
@@ -142,7 +152,7 @@ placeholders(_) ->
     {ok, _} =
         emqx_access_control:authenticate(ClientA#{password => <<"plain">>, dn => <<"a_dn_val">>}).
 
-check_auth(_) ->
+t_check_auth(_) ->
     Plain = #{clientid => <<"client1">>, username => <<"plain">>, zone => external},
     Md5 = #{clientid => <<"md5">>, username => <<"md5">>, zone => external},
     Sha = #{clientid => <<"sha">>, username => <<"sha">>, zone => external},
@@ -151,7 +161,8 @@ check_auth(_) ->
     BcryptFoo = #{clientid => <<"bcrypt_foo">>, username => <<"bcrypt_foo">>, zone => external},
     User1 = #{clientid => <<"bcrypt_foo">>, username => <<"user">>, zone => external},
     Bcrypt = #{clientid => <<"bcrypt">>, username => <<"bcrypt">>, zone => external},
-    reload([{password_hash, plain}]),
+    reload([{password_hash, plain},
+            {auth_query, "select password from mqtt_user_test where username = '%u' limit 1"}]),
     {ok, #{is_superuser := true}} = emqx_access_control:authenticate(Plain#{password => <<"plain">>}),
     reload([{password_hash, md5}]),
     {ok, #{is_superuser := false}} = emqx_access_control:authenticate(Md5#{password => <<"md5">>}),
@@ -168,36 +179,24 @@ check_auth(_) ->
     {ok, #{is_superuser := false}} = emqx_access_control:authenticate(BcryptFoo#{password => <<"foo">>}),
     {error, _} = emqx_access_control:authenticate(User1#{password => <<"foo">>}),
     {error, not_authorized} = emqx_access_control:authenticate(Bcrypt#{password => <<"password">>}).
-
-init_auth_() ->
-    {ok, Pid} = ecpool_worker:client(gproc_pool:pick_worker({ecpool, ?POOL})),
-    {ok, [], []} = epgsql:squery(Pid, ?DROP_AUTH_TABLE),
-    {ok, [], []} = epgsql:squery(Pid, ?CREATE_AUTH_TABLE),
-    {ok, _} = epgsql:equery(Pid, ?INIT_AUTH).
-
-drop_auth_() ->
-    {ok, Pid} = ecpool_worker:client(gproc_pool:pick_worker({ecpool, ?POOL})),
-    {ok, [], []} = epgsql:squery(Pid, ?DROP_AUTH_TABLE).
-
-check_acl(_) ->
+t_check_acl(_) ->
     emqx_modules:load_module(emqx_mod_acl_internal, false),
     User1 = #{zone => external, peerhost => {127,0,0,1}, clientid => <<"c1">>, username => <<"u1">>},
     User2 = #{zone => external, peerhost => {127,0,0,1}, clientid => <<"c2">>, username => <<"u2">>},
+    reload([{acl_query, "select allow, ipaddr, username, clientid, access, topic from mqtt_acl_test where ipaddr = '%a' or username = '%u' or username = '$all' or clientid = '%c'"}]),
     allow = emqx_access_control:check_acl(User1, subscribe, <<"t1">>),
     deny = emqx_access_control:check_acl(User2, subscribe, <<"t1">>),
-
     User3 = #{zone => external, peerhost => {10,10,0,110}, clientid => <<"c1">>, username => <<"u1">>},
     User4 = #{zone => external, peerhost => {10,10,10,110}, clientid => <<"c1">>, username => <<"u1">>},
     allow = emqx_access_control:check_acl(User3, subscribe, <<"t1">>),
     allow = emqx_access_control:check_acl(User3, subscribe, <<"t1">>),
     allow = emqx_access_control:check_acl(User3, subscribe, <<"t2">>),%% nomatch -> ignore -> emqttd acl
     allow = emqx_access_control:check_acl(User4, subscribe, <<"t1">>),%% nomatch -> ignore -> emqttd acl
-
     User5 = #{zone => external, peerhost => {127,0,0,1}, clientid => <<"c3">>, username => <<"u3">>},
     allow = emqx_access_control:check_acl(User5, subscribe, <<"t1">>),
     allow = emqx_access_control:check_acl(User5, publish, <<"t1">>).
 
-acl_super(_Config) ->
+t_acl_super(_) ->
     reload([{password_hash, plain}, {auth_query, "select password from mqtt_user_test where username = '%u' limit 1"}]),
     {ok, C} = emqtt:start_link([{host, "localhost"}, {clientid, <<"simpleClient">>},
                                 {username, <<"plain">>}, {password, <<"plain">>}]),
@@ -216,36 +215,10 @@ acl_super(_Config) ->
     end,
     emqtt:disconnect(C).
 
-server_config(_) ->
-    I = [{host, "localhost"},
-         {pool_size, 1},
-         {port, 5432},
-         {auto_reconnect, 1},
-         {username, "admin"},
-         {password, "public"},
-         {database, "sercrit"},
-         {encoding, utf8},
-         {ssl, false},
-         {ssl_opts,[]}],
-    SetConfigKeys = ["server=localhost:5432",
-                     "pool=1",
-                     "username=admin",
-                     "password=public",
-                     "database=sercrit",
-                     "encoding=gbk",
-                     "ssl=true",
-                     "ssl_opts.keyfile=/etc/keyfile",
-                     "ssl_opts.certfile=/key/certfile",
-                     "ssl_opts.cacertfile=key/cafile",
-                     "password_hash=salt,sha256"],
-    lists:foreach(fun set_cmd/1, SetConfigKeys),
-    {ok, E} =  application:get_env(emqx_auth_pgsql, server),
-    {ok, Hash} =  application:get_env(emqx_auth_pgsql, password_hash),
-    ?assertEqual(lists:sort(I), lists:sort(E)),
-    ?assertEqual({salt,sha256}, Hash).
-
-set_cmd(Key) ->
-    emqx_cli_config:run(["config", "set", string:join(["authenticate.pgsql", Key], "."), "--app=emqx_auth_pgsql"]).
+reload(Config) when is_list(Config) ->
+    application:stop(?APP),
+    [application:set_env(?APP, K, V) || {K, V} <- Config],
+    application:start(?APP).
 
 init_acl_() ->
     {ok, Pid} = ecpool_worker:client(gproc_pool:pick_worker({ecpool, ?POOL})),
@@ -257,7 +230,12 @@ drop_acl_() ->
     {ok, Pid} = ecpool_worker:client(gproc_pool:pick_worker({ecpool, ?POOL})),
     {ok, [], []}= epgsql:squery(Pid, ?DROP_ACL_TABLE).
 
-reload(Config) when is_list(Config) ->
-    application:stop(?APP),
-    [application:set_env(?APP, K, V) || {K, V} <- Config],
-    application:start(?APP).
+init_auth_() ->
+    {ok, Pid} = ecpool_worker:client(gproc_pool:pick_worker({ecpool, ?POOL})),
+    {ok, [], []} = epgsql:squery(Pid, ?DROP_AUTH_TABLE),
+    {ok, [], []} = epgsql:squery(Pid, ?CREATE_AUTH_TABLE),
+    {ok, _} = epgsql:equery(Pid, ?INIT_AUTH).
+
+drop_auth_() ->
+    {ok, Pid} = ecpool_worker:client(gproc_pool:pick_worker({ecpool, ?POOL})),
+    {ok, [], []} = epgsql:squery(Pid, ?DROP_AUTH_TABLE).

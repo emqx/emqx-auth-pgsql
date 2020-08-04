@@ -4,7 +4,7 @@ services:
   erlang:
     image: erlang:22.3
     volumes:
-      - ./:/emqx_auth_pgsql
+      - ../:/emqx_auth_pgsql
     networks:
       - emqx-bridge
     depends_on:
@@ -12,7 +12,11 @@ services:
     tty: true
 
   pgsql_server:
-    image: ${PGSQL_IMAGE}
+    build:
+        context: ./pgsql
+        args:
+            BUILD_FROM: postgres:${PGSQL_TAG}
+    image: emqx-pgsql
     restart: always
     environment:
       POSTGRES_PASSWORD: public

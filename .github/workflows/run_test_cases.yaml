@@ -8,12 +8,12 @@ jobs:
  
         strategy:
             matrix:
-                pgsql_image:
-                    - postgres:9
-                    - postgres:10
-                    - postgres:11
-                    - postgres:12
-                    - postgres:13
+                pgsql_tag:
+                    - 9
+                    - 10
+                    - 11
+                    - 12
+                    - 13
  
         steps:
             - name: install docker-compose
@@ -23,21 +23,18 @@ jobs:
             - uses: actions/checkout@v1
             - name: run test cases
               env:
-                 PGSQL_IMAGE: ${{ matrix.pgsql_image }}
+                 PGSQL_TAG: ${{ matrix.pgsql_tag }}
               run: |
-                docker-compose -f ./docker-compose.yml -p tests up -d 
+                cp test/emqx_auth_pgsql_SUITE_data/* .ci/pgsql/
+                docker-compose -f .ci/docker-compose.yml -p tests up -d --build
                 docker exec -i $(docker ps -a -f name=tests_erlang_1 -q) sh -c "sed -i '/auth.pgsql.server/c auth.pgsql.server = pgsql_server:5432' /emqx_auth_pgsql/etc/emqx_auth_pgsql.conf"
                 docker exec -i tests_erlang_1 sh -c "make -C /emqx_auth_pgsql xref"
                 docker exec -i tests_erlang_1 sh -c "make -C /emqx_auth_pgsql eunit"
                 docker exec -i tests_erlang_1 sh -c "make -C /emqx_auth_pgsql ct"
                 docker exec -i tests_erlang_1 sh -c "make -C /emqx_auth_pgsql cover"
             - uses: actions/upload-artifact@v1
-              if: always()
+              if: failure()
               with:
-                name: logs_for_${{ matrix.pgsql_image }}
+                name: logs_for_pgsql${{ matrix.pgsql_tag }}
                 path: _build/test/logs
-            - uses: actions/upload-artifact@v1
-              with:
-                name: cover_for_${{ matrix.pgsql_image }}
-                path: _build/test/cover
 
