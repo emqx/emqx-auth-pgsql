@@ -69,9 +69,16 @@
                         {certfile,   cuttlefish:conf_get(Prefix ++ ".certfile", Conf, undefined)},
                         {cacertfile, cuttlefish:conf_get(Prefix ++ ".cacertfile", Conf, undefined)}])
             end,
+  
+  TempHost = case inet:parse_address(PgHost) of
+      {ok, IpAddr} when tuple_size(IpAddr) =:= 8 ->
+          IpAddr;
+      _ ->
+          PgHost
+  end,
   [{pool_size, Pool},
    {auto_reconnect, 1},
-   {host, PgHost},
+   {host, TempHost},
    {port, PgPort},
    {username, Username},
    {password, Passwd},

@@ -6,7 +6,7 @@ services:
     volumes:
       - ../:/emqx_auth_pgsql
     networks:
-      - emqx-bridge
+      - emqx_bridge
     depends_on:
       - pgsql_server
     tty: true
@@ -23,8 +23,8 @@ services:
       POSTGRES_USER: root
       POSTGRES_DB: mqtt
     networks:
-      - emqx-bridge
+      - emqx_bridge
 
 networks:
-  emqx-bridge:
+  emqx_bridge:
     driver: bridge
