@@ -79,6 +79,10 @@ groups() ->
 
 init_per_group(ssl, Config) ->
     emqx_ct_helpers:start_apps([emqx_auth_pgsql], fun set_special_configs_ssl/1),
+    init_auth_(),
+    ct:pal("init_auth_"),
+    init_acl_(),
+    ct:pal("init_acl_"),
     Config;
 init_per_group(nossl, Config) ->
     emqx_ct_helpers:start_apps([emqx_auth_pgsql], fun set_special_configs/1),
@@ -95,16 +99,7 @@ end_per_suite(_) ->
     ok.
 
 set_special_configs_ssl(emqx_auth_pgsql) ->
-    Cfg = application:get_env(emqx_auth_pgsql, server, []),
-    io:format("====>CFG:~p~n", [Cfg]),
-    SslCfg = [{ssl, true}, {ssl_opts,
-                    [{cacertfile, emqx_ct_helpers:deps_path(emqx_auth_pgsql,
-                                                            "test/emqx_auth_pgsql_SUITE_data/ca.pem")},
-                     {certfile, emqx_ct_helpers:deps_path(emqx_auth_pgsql,
-                                                          "test/emqx_auth_pgsql_SUITE_data/client-cert.pem")},
-                     {keyfile, emqx_ct_helpers:deps_path(emqx_auth_pgsql,
-                                                         "test/emqx_auth_pgsql_SUITE_data/client-key.pem")}]}],
-    application:set_env(emqx_auth_pgsql, server, Cfg ++ SslCfg);
+    reload([{ssl, true}]);
 
 set_special_configs_ssl(emqx) ->
     set_special_configs(emqx).
