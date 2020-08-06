@@ -24,10 +24,20 @@ jobs:
             - name: run test cases
               env:
                  PGSQL_TAG: ${{ matrix.pgsql_tag }}
+                 NETWORK_TYPE: ${{ matrix.network_type }}
               run: |
+                set -e -u -x
+                if [ "$NETWORK_TYPE" = "ipv6" ]; then docker network create --driver bridge --ipv6 --subnet fd15:555::/64 tests_emqx_bridge --attachable; fi
+                
                 cp test/emqx_auth_pgsql_SUITE_data/* .ci/pgsql/
                 docker-compose -f .ci/docker-compose.yml -p tests up -d --build
-                docker exec -i $(docker ps -a -f name=tests_erlang_1 -q) sh -c "sed -i '/auth.pgsql.server/c auth.pgsql.server = pgsql_server:5432' /emqx_auth_pgsql/etc/emqx_auth_pgsql.conf"
+                if [ "$NETWORK_TYPE" != "ipv6" ]; then
+                    docker exec -i $(docker ps -a -f name=tests_erlang_1 -q) sh -c "sed -i '/auth.pgsql.server/c auth.pgsql.server = pgsql_server:5432' /emqx_auth_pgsql/etc/emqx_auth_pgsql.conf"
+                else
+                    ipv6_address=$(docker inspect -f '{{range.NetworkSettings.Networks}}{{.GlobalIPv6Address}}{{end}}' $(docker ps -a -f name=tests_pgsql_server_1 -q))
+                    docker exec -i $(docker ps -a -f name=tests_erlang_1 -q) sh -c "sed -i '/auth.pgsql.server/c auth.pgsql.server = $ipv6_address:5432' /emqx_auth_pgsql/etc/emqx_auth_pgsql.conf"
+                fi
+                
                 docker exec -i tests_erlang_1 sh -c "make -C /emqx_auth_pgsql xref"
                 docker exec -i tests_erlang_1 sh -c "make -C /emqx_auth_pgsql eunit"
                 docker exec -i tests_erlang_1 sh -c "make -C /emqx_auth_pgsql ct"
@@ -35,6 +45,5 @@ jobs:
             - uses: actions/upload-artifact@v1
               if: failure()
               with:
-                name: logs_for_pgsql${{ matrix.pgsql_tag }}
+                name: logs_for_pgsql${{ matrix.pgsql_tag }}_{{matrix.network_type}}
                 path: _build/test/logs
-

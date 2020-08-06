@@ -71,7 +71,7 @@
             end,
   
   TempHost = case inet:parse_address(PgHost) of
-      {ok, IpAddr} when tuple_size(IpAddr) =:= 8 ->
+      {ok, IpAddr} ->
           IpAddr;
       _ ->
           PgHost
