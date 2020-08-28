@@ -37,8 +37,9 @@ register_metrics() ->
 check(ClientInfo = #{password := Password}, AuthResult,
       #{auth_query  := {AuthSql, AuthParams},
         super_query := SuperQuery,
-        hash_type   := HashType}) ->
-    CheckPass = case emqx_auth_pgsql_cli:equery(AuthSql, AuthParams, ClientInfo) of
+        hash_type   := HashType,
+        pool := Pool}) ->
+    CheckPass = case emqx_auth_pgsql_cli:equery(Pool, AuthSql, AuthParams, ClientInfo) of
                     {ok, _, [Record]} ->
                         check_pass(erlang:append_element(Record, Password), HashType);
                     {ok, _, []} ->
@@ -50,7 +51,7 @@ check(ClientInfo = #{password := Password}, AuthResult,
     case CheckPass of
         ok ->
             emqx_metrics:inc(?AUTH_METRICS(success)),
-            {stop, AuthResult#{is_superuser => is_superuser(SuperQuery, ClientInfo),
+            {stop, AuthResult#{is_superuser => is_superuser(Pool, SuperQuery, ClientInfo),
                                 anonymous => false,
                                 auth_result => success}};
         {error, not_found} ->
@@ -65,11 +66,11 @@ check(ClientInfo = #{password := Password}, AuthResult,
 %% Is Superuser?
 %%--------------------------------------------------------------------
 
--spec(is_superuser(undefined | {string(), list()}, emqx_types:client()) -> boolean()).
-is_superuser(undefined, _Client) ->
+-spec(is_superuser(atom(),undefined | {string(), list()}, emqx_types:client()) -> boolean()).
+is_superuser(_Pool, undefined, _Client) ->
     false;
-is_superuser({SuperSql, Params}, ClientInfo) ->
-    case emqx_auth_pgsql_cli:equery(SuperSql, Params, ClientInfo) of
+is_superuser(Pool, {SuperSql, Params}, ClientInfo) ->
+    case emqx_auth_pgsql_cli:equery(Pool, SuperSql, Params, ClientInfo) of
         {ok, [_Super], [{true}]} ->
             true;
         {ok, [_Super], [_False]} ->

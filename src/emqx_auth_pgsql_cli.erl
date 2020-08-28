@@ -25,7 +25,7 @@
 
 -export([connect/1]).
 -export([parse_query/2]).
--export([ equery/2
+-export([ equery/4
         , equery/3
         ]).
 
@@ -104,11 +104,11 @@ conn_opts([Opt = {ssl_opts, _}|Opts], Acc) ->
 conn_opts([_Opt|Opts], Acc) ->
     conn_opts(Opts, Acc).
 
-equery(Sql, Params) ->
-    ecpool:with_client(?APP, fun(C) -> epgsql:prepared_query(C, Sql, Params) end).
+equery(Pool, Sql, Params) ->
+    ecpool:with_client(Pool, fun(C) -> epgsql:prepared_query(C, Sql, Params) end).
 
-equery(Sql, Params, ClientInfo) ->
-    ecpool:with_client(?APP, fun(C) -> epgsql:prepared_query(C, Sql, replvar(Params, ClientInfo)) end).
+equery(Pool, Sql, Params, ClientInfo) ->
+    ecpool:with_client(Pool, fun(C) -> epgsql:prepared_query(C, Sql, replvar(Params, ClientInfo)) end).
 
 replvar(Params, ClientInfo) ->
     replvar(Params, ClientInfo, []).
