@@ -58,9 +58,14 @@ connect(Opts) ->
     Host     = proplists:get_value(host, Opts),
     Username = proplists:get_value(username, Opts),
     Password = proplists:get_value(password, Opts),
+    AuthQuery = proplists:get_value(auth_query, Opts),
+    AclQuery = proplists:get_value(acl_query, Opts),
+    SuperQuery = proplists:get_value(super_query, Opts),
     case epgsql:connect(Host, Username, Password, conn_opts(Opts)) of
         {ok, C} ->
-            conn_post(C),
+            conn_post(C, #{auth_query => AuthQuery,
+                           acl_query => AclQuery,
+                           super_query => SuperQuery}),
             {ok, C};
         {error, Reason = econnrefused} ->
             ?LOG(error, "[Postgres] Can't connect to Postgres server: Connection refused."),
@@ -76,9 +81,9 @@ connect(Opts) ->
             {error, Reason}
     end.
 
-conn_post(Connection) ->
+conn_post(Connection, QueryOpts) ->
     lists:foreach(fun(Par) ->
-        Sql0 = application:get_env(?APP, Par, undefined),
+        Sql0 = maps:get(Par, QueryOpts, undefined),
         case parse_query(Par, Sql0) of
             undefined -> ok;
             {_, Params} ->

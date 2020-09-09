@@ -32,6 +32,12 @@ start_link() ->
 init([]) ->
     %% PgSQL Connection Pool
     {ok, Opts} = application:get_env(?APP, server),
-    PoolSpec = ecpool:pool_spec(?APP, ?APP, emqx_auth_pgsql_cli, Opts),
+    AuthQuery = application:get_env(?APP, auth_query, undefined),
+    AclQuery = application:get_env(?APP, acl_query, undefined),
+    SuperQuery = application:get_env(?APP, super_query, undefined),
+    QueryOpts = [{auth_query, AuthQuery},
+                 {acl_query, AclQuery},
+                 {super_query, SuperQuery}],
+    PoolSpec = ecpool:pool_spec(?APP, ?APP, emqx_auth_pgsql_cli, Opts ++ QueryOpts),
     {ok, {{one_for_one, 10, 100}, [PoolSpec]}}.
 
