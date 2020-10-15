@@ -150,7 +150,13 @@ t_placeholders(_) ->
     {error, not_authorized} =
         emqx_access_control:authenticate(ClientA#{password => <<"plain">>, dn => undefined}),
     {ok, _} =
-        emqx_access_control:authenticate(ClientA#{password => <<"plain">>, dn => <<"a_dn_val">>}).
+        emqx_access_control:authenticate(ClientA#{password => <<"plain">>, dn => <<"a_dn_val">>}),
+
+     reload([{auth_query, "select password from mqtt_user_test where username = '%u' and '192.168.1.5' = '%a' limit 1"}]),
+     {error, not_authorized} =
+         emqx_access_control:authenticate(ClientA#{password => <<"plain">>}),
+     {ok, _} =
+         emqx_access_control:authenticate(ClientA#{password => <<"plain">>, peerhost => {192,168,1,5}}).
 
 t_check_auth(_) ->
     Plain = #{clientid => <<"client1">>, username => <<"plain">>, zone => external},
