@@ -186,7 +186,7 @@ t_check_auth(_) ->
     {error, _} = emqx_access_control:authenticate(User1#{password => <<"foo">>}),
     {error, not_authorized} = emqx_access_control:authenticate(Bcrypt#{password => <<"password">>}).
 t_check_acl(_) ->
-    emqx_modules:load_module(emqx_mod_acl_internal, false),
+    % emqx_modules:load_module(emqx_mod_acl_internal, false),
     User1 = #{zone => external, peerhost => {127,0,0,1}, clientid => <<"c1">>, username => <<"u1">>},
     User2 = #{zone => external, peerhost => {127,0,0,1}, clientid => <<"c2">>, username => <<"u2">>},
     reload([{acl_query, "select allow, ipaddr, username, clientid, access, topic from mqtt_acl_test where ipaddr = '%a' or username = '%u' or username = '$all' or clientid = '%c'"}]),
@@ -196,8 +196,8 @@ t_check_acl(_) ->
     User4 = #{zone => external, peerhost => {10,10,10,110}, clientid => <<"c1">>, username => <<"u1">>},
     allow = emqx_access_control:check_acl(User3, subscribe, <<"t1">>),
     allow = emqx_access_control:check_acl(User3, subscribe, <<"t1">>),
-    allow = emqx_access_control:check_acl(User3, subscribe, <<"t2">>),%% nomatch -> ignore -> emqttd acl
-    allow = emqx_access_control:check_acl(User4, subscribe, <<"t1">>),%% nomatch -> ignore -> emqttd acl
+    deny = emqx_access_control:check_acl(User3, subscribe, <<"t2">>),%% nomatch -> ignore -> emqttd acl
+    deny = emqx_access_control:check_acl(User4, subscribe, <<"t1">>),
     User5 = #{zone => external, peerhost => {127,0,0,1}, clientid => <<"c3">>, username => <<"u3">>},
     allow = emqx_access_control:check_acl(User5, subscribe, <<"t1">>),
     allow = emqx_access_control:check_acl(User5, publish, <<"t1">>).
