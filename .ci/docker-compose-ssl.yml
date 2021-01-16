@@ -12,7 +12,12 @@ services:
     tty: true
 
   pgsql_server:
-    image: postgres:${PGSQL_TAG}
+    build:
+        context: ./pgsql
+        args:
+            POSTGRES_USER: postgres
+            BUILD_FROM: postgres:${PGSQL_TAG}
+    image: emqx_pgsql:${PGSQL_TAG}
     restart: always
     hostname: pgsql_server
     environment:
@@ -21,6 +26,17 @@ services:
         POSTGRES_PASSWORD: postgres
     ports:
        - "5432:5432"
+    command:
+       - -c
+       - ssl=on
+       - -c
+       - ssl_cert_file=/var/lib/postgresql/server.crt
+       - -c
+       - ssl_key_file=/var/lib/postgresql/server.key
+       - -c
+       - ssl_ca_file=/var/lib/postgresql/root.crt
+       - -c
+       - hba_file=/var/lib/postgresql/pg_hba.conf
     networks:
       app_net:
         ipv4_address: 192.168.1.10
