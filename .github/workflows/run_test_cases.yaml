@@ -24,6 +24,7 @@ jobs:
         steps:
             - uses: actions/checkout@v1
             - name: run test cases
+              shell: bash
               env:
                  PGSQL_TAG: ${{ matrix.pgsql_tag }}
                  NETWORK_TYPE: ${{ matrix.network_type }}
@@ -31,8 +32,15 @@ jobs:
               run: |
                 if [ "$CONNECT_TYPE" = "ssl" ]; then
                     docker-compose -f .ci/docker-compose-ssl.yml -p test up -d --build
+                    if [ "$PGSQL_TAG" = "12" ] || [ "$PGSQL_TAG" = "13" ]; then
+                        docker exec -i $(docker ps -a -f name=test_erlang_1 -q) sh -c "sed -i '/auth.pgsql.ssl.tls_versions =/c auth.pgsql.ssl.tls_versions = tlsv1.3,tlsv1.2' /emqx_auth_pgsql/etc/emqx_auth_pgsql.conf"
+                    else
+                        docker exec -i $(docker ps -a -f name=test_erlang_1 -q) sh -c "sed -i '/auth.pgsql.ssl.tls_versions =/c auth.pgsql.ssl.tls_versions = tlsv1.2,tlsv1.3' /emqx_auth_pgsql/etc/emqx_auth_pgsql.conf"
+                    fi
                     docker exec -i $(docker ps -a -f name=test_erlang_1 -q) sh -c "sed -i '/auth.pgsql.ssl =/c auth.pgsql.ssl = true' /emqx_auth_pgsql/etc/emqx_auth_pgsql.conf"
                     docker exec -i $(docker ps -a -f name=test_erlang_1 -q) sh -c "echo 'auth.pgsql.ssl_opts.cacertfile = /emqx_auth_pgsql/.ci/pgsql/root.crt' >> /emqx_auth_pgsql/etc/emqx_auth_pgsql.conf"
+                    docker exec -i $(docker ps -a -f name=test_erlang_1 -q) sh -c "echo 'auth.pgsql.ssl_opts.keyfile = /emqx_auth_pgsql/.ci/pgsql/postgresql.key' >> /emqx_auth_pgsql/etc/emqx_auth_pgsql.conf"
+                    docker exec -i $(docker ps -a -f name=test_erlang_1 -q) sh -c "echo 'auth.pgsql.ssl_opts.certfile = /emqx_auth_pgsql/.ci/pgsql/postgresql.crt' >> /emqx_auth_pgsql/etc/emqx_auth_pgsql.conf"
                 else
                     docker-compose -f .ci/docker-compose.yml -p test up -d
                 fi
